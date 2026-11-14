@@ -2,9 +2,9 @@
 
 | Item | Value |
 |---|---|
-| Document status | Draft v0.1 for committee review. Not approved for development. |
+| Document status | Draft v0.2 for committee review. Not approved for development. |
 | Date | 14 November 2026 |
-| Input | `docs/01-current-state-assessment.md` |
+| Input | `docs/01-current-state-assessment.md`, including the back-office walkthrough (Section 7) |
 | Decisions required | Marked **[Decision]**. Section 11 lists all of them. |
 
 ---
@@ -38,14 +38,30 @@ A custom platform replaces a mature SaaS product. The committee must accept the 
 
 The scope is grouped into modules. Each phase delivers usable value and can go live alone.
 
+### 3.1 Module scope (from the back-office walkthrough)
+
+The walkthrough on 14 November 2026 showed which Majestri modules the club uses (assessment Section 7.11). The scope below follows that evidence. **[Decision D-08]**
+
+| Scope | Modules | Reason |
+|---|---|---|
+| **Core (must have)** | Event engine for all event categories, intake with configurable stages and offers, form builder, fee rules, team administration and officials, WWCC accreditation register, email and SMS, role addresses, invoicing, debtors, payment plans, manual receipting, refunds, credit notes, vouchers, committees and access control with MFA, website pages, documents, sponsors | In active use with high volume, or a legal or child-safety need |
+| **Required, lower volume** | Ticketing (presentation nights), team photo orders, online shop (small catalogue), Xero posting, Do Not Email and delivery problem registers, notification routing, saved groups | In use, but simple or seasonal |
+| **New (Majestri gap)** | Fixtures and results import (Dribl), PlayFootball reconciliation, game-day duty roster, contact form, news, club privacy collection notice, fine-grained permissions, auditor role | Fills gaps G-01, G-02, G-05, G-06, G-11, G-14 |
+| **Deferred** | Volunteer hours and rebates, equipment register, service provider register, watchlist, photo albums, player assessments | Not used in Majestri now. Build only if the committee asks. |
+| **Out of scope** | Competition management (Whirlpool equivalent) | Football Victoria runs competitions in Dribl |
+
+### 3.2 Phases
+
 | Phase | Modules | Replaces | Target window (indicative) |
 |---|---|---|---|
-| 0. Foundations | Identity, RBAC, audit log, CMS core, CI/CD, environments, hosting, backups | None | Weeks 1 to 4 |
-| 1. Public website | Pages, news, menu, documents, sponsors, venues, field status, calendar, contact form, fixtures display | Majestri website, Canva directory, manual fixture tables | Weeks 5 to 10 |
-| 2. Intake and registration | Event engine, form builder, fee rules engine, EOI, trials, offers, family registration, T&Cs, invoices, card payments, PlayFootball reconciliation | Majestri events and registrations, Google Forms | Weeks 11 to 20. Must be live and tested before the intake window it is used for. |
-| 3. Teams and communications | Team builder, Team Dugout, schedules, RSVPs, attendance, email and SMS, message log, role mailboxes | Majestri teams and comms, Google Sheets rosters | Weeks 21 to 28 |
-| 4. Finance | Payment plans (direct debit), receipting, adjustments, debtors, aging, refunds, Xero posting, reports | Majestri financials | Weeks 29 to 36 |
-| 5. Operations | Shop, volunteer roster and hours, equipment register, player assessments, ticketing, sponsor reports | Remaining Majestri modules | Weeks 37 onward |
+| 0. Foundations | Identity with MFA, RBAC with fine-grained permissions, audit log, CMS core, CI/CD, environments, hosting, backups | None | Weeks 1 to 4 |
+| 1. Public website | Pages, news, menu, documents, sponsors (5 tiers), venues, contact form, fixtures display, privacy collection notice | Majestri website, Canva directory, manual fixture tables | Weeks 5 to 10 |
+| 2. Intake and registration | Event engine (season, EOI, clinic, academy, term program, ticketed, photo orders), configurable intake stages, offers with expiry, form builder, fee rules, family registration, T&Cs, invoices, card payments, modified-registration approval queue, PlayFootball reconciliation | Majestri events, intake and registrations, Google Forms | Weeks 11 to 22. Must be live and tested before the intake window it is used for. |
+| 3. Teams, safeguarding and communications | Team administration, officials, WWCC accreditation register with expiry blocking, schedules, attendance, email and SMS, message log, Do Not Email register, role addresses, notification routing, game-day duty roster | Majestri teams, accreditation and comms, Google Sheets rosters | Weeks 23 to 30 |
+| 4. Finance | Payment plans (direct debit) with approval queue, manual receipting (EFT, cash, EFTPOS, vouchers), adjustments, credit notes, refunds and ABA refund batches, debtors, Xero posting, settlement reconciliation, reports | Majestri financials | Weeks 31 to 38 |
+| 5. Shop and optional modules | Shop (products, variants, stock, orders). Optional: volunteer hours, equipment register, player assessments | Remaining Majestri modules | Weeks 39 onward |
+
+Changes from v0.1: intake stages and offers moved into Phase 2 scope because the club uses them for every EOI (G-09). The WWCC register moved into Phase 3 with team administration. Ticketing and photo orders moved into the Phase 2 event engine because they are event categories. Volunteer roster, equipment register and assessments moved to optional because the club does not use them in Majestri. Phase 2 grew by two weeks.
 
 Timing assumes a small part-time team. The committee must align Phase 2 with the club calendar: community trials run in November and EOIs close in January and March. A go-live during an open intake window is not acceptable. **[Decision D-02]**
 
@@ -76,7 +92,9 @@ Full requirements will be written per module before each phase. The summary belo
 
 ### 4.3 Events, intake and registration
 - One event engine for all event types: season, EOI, trial, camp, clinic, social, presentation night.
-- Workflow stages per event: EOI, invited to trial, trialled, offered, accepted, registered, declined. Stages are configurable.
+- Workflow stages per event: EOI, invited to trial, trialled, offered, accepted, registered, declined. Stages are configurable. Stages replace the Majestri workaround that uses "teams" such as Shortlist, Not Invited and Unsuccessful (assessment G-09).
+- Offers with an expiry date, and statuses for pending, accepted, declined, expired and cancelled.
+- Approval queue for registrations that a member changes after submission.
 - Form builder with field types, conditional logic and reusable field sets.
 - Fee rules engine configured in admin: base fee by age group or program, sibling discount, early-bird and date pro-rating, volunteer and coach discounts, vouchers, deposits.
 - Offer letters generated from templates (PDF and email).
@@ -101,8 +119,10 @@ Full requirements will be written per module before each phase. The summary belo
 ### 4.6 Finance
 - Invoices per registration and order, split into components (registration, uniform, shop item).
 - Online payment: card, Apple Pay, Google Pay through a hosted payment provider. No card data touches club systems.
-- Payment plans: BECS direct debit instalments, club-defined limits and frequencies.
-- Manual receipting for cash, EFT and vouchers, including part payments across components.
+- Payment plans: BECS direct debit instalments, club-defined limits and frequencies. New plans go to an approval queue before the first debit.
+- Manual receipting for cash, EFT, EFTPOS and vouchers, including part payments across components.
+- Electronic vouchers (club credit) with status and owner.
+- Refund batches exported as ABA files for the club bank.
 - Adjustments (discount, credit, write-off) with reason codes and approval for amounts above a threshold.
 - Refunds with approval.
 - Debtors list, aging report, bulk reminder emails.
@@ -120,7 +140,8 @@ Full requirements will be written per module before each phase. The summary belo
 
 ### 4.8 Administration
 - Committee terms with start and end dates. Access expires at term end unless renewed.
-- Role-based access control with predefined roles and per-module permissions (Section 6.3).
+- Role-based access control with predefined roles and per-module permissions (Section 6.3). Majestri has only five access areas (Administration, Financials, Content, Events, Shop). The new model adds separate permissions for refunds, exports and child data.
+- Import the Majestri Do Not Email register and delivery problem list at migration.
 - Audit log of all administrative actions and all access to sensitive records.
 - Data export (CSV) for each module.
 
@@ -209,6 +230,8 @@ Controls: rate limiting and lockout on sign-in, signed short-lived magic links (
 | Volunteer coordinator | Club | Volunteer roster |
 | Auditor | Club, time-limited | Read-only finance |
 | System administrator | Platform | Role assignment, configuration. Cannot bypass audit log. |
+
+Mapping from Majestri: Administration maps to System administrator and Secretary. Financials maps to Treasurer. Content maps to Content editor. Events maps to Registrar and event co-ordinator. Shop maps to a new Shop manager role. The per-member "Hide Contact Details" flag becomes a privacy setting on the person record.
 
 All committee roles carry a term end date. Access expires automatically after the AGM unless renewed. Bulk exports of personal data need a specific permission and are logged.
 
@@ -331,7 +354,7 @@ SMS and payment processing are usage-based in both options. These figures are es
 | D-05 | Operating budget and support model | Volunteer / paid retainer / hybrid | Treasurer, committee |
 | D-06 | Payment provider and fee policy (absorb or pass on fees) | Stripe / other | Treasurer |
 | D-07 | Data retention schedule | | Secretary |
-| D-08 | Modules in scope (which Majestri modules are actually used) | | Committee |
+| D-08 | Modules in scope (which Majestri modules are actually used) | Evidence collected on 14 Nov 2026 (assessment Section 7.11). Proposed scope in Section 3.1: core, required, new, deferred and out of scope. Committee to confirm the deferred list and Xero status. | Committee |
 
 ## 12. Risks
 
@@ -348,7 +371,7 @@ SMS and payment processing are usage-based in both options. These figures are es
 ## 13. Next steps
 
 1. Committee review of this draft and the current state assessment.
-2. Back-office walkthrough to confirm the modules in use (Section 6 of the assessment).
+2. Back-office walkthrough to confirm the modules in use. **Done** (assessment Section 7). Follow-up: the Treasurer confirms the Xero status and supplies revenue and SMS volumes.
 3. Decisions D-01, D-03, D-05 and D-08.
 4. Detailed requirements for Phase 0 and Phase 1.
 5. Repository scaffold, CI/CD and environments (Phase 0 start).
