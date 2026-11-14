@@ -2,7 +2,7 @@
 
 | Item | Value |
 |---|---|
-| Document status | Draft v0.3 for committee review. Not approved for development. |
+| Document status | Draft v0.4 for committee review. Not approved for development. |
 | Date | 14 November 2026 |
 | Input | `docs/01-current-state-assessment.md`, including the back-office walkthrough (Section 7) |
 | Decisions required | Marked **[Decision]**. Section 11 lists all of them. |
@@ -24,7 +24,7 @@ A custom platform replaces a mature SaaS product. The committee must accept the 
 
 | Factor | Majestri (current) | Custom platform |
 |---|---|---|
-| Subscription | $49/month plus $10/month domain | Hosting and services, estimated $40 to $120/month (Section 9) |
+| Subscription | $49/month plus $10/month domain | Cloudflare hosting and services, estimated $45 to $170/month (Section 9) |
 | Payment fees | 2.9% per payment | Stripe AU, indicative 1.7% + $0.30 domestic card, BECS direct debit lower (verify current Stripe pricing) |
 | Custom forms and fees | Vendor builds on request | Club configures in admin, no vendor dependency |
 | Fixtures and PlayFootball | Not integrated | Can be integrated where the source system allows |
@@ -171,10 +171,12 @@ A **modular monolith**: one deployable application with strict internal module b
                          |           |           |           |
                +---------v--+  +-----v-----+  +--v-------+  +v-----------+
                | PostgreSQL |  | Object    |  | Job      |  | Integration|
-               | (primary   |  | storage   |  | queue    |  | adapters   |
-               |  data)     |  | (docs,    |  | (emails, |  |            |
-               |            |  |  images)  |  |  SMS,    |  |            |
-               +------------+  +-----------+  |  imports)|  +-----+------+
+               | (Sydney,   |  | storage   |  | queue    |  | adapters   |
+               |  via       |  | (R2:      |  | (Queues, |  |            |
+               |  Hyperdrive)| |  docs,    |  |  Cron:   |  |            |
+               +------------+  |  images)  |  |  emails, |  +-----+------+
+                               +-----------+  |  SMS,    |        |
+                                              |  imports)|        |
                                               +----------+        |
        +--------------+---------------+-------------+-------------+------+
        |              |               |             |                    |
@@ -183,14 +185,44 @@ A **modular monolith**: one deployable application with strict internal module b
                   bulk)                            posting)       registration CSV)
 ```
 
-### 5.3 Key design principles
+### 5.3 Hosting architecture: Cloudflare (decision D-03)
+
+The platform runs on Cloudflare. The primary database stays in a managed PostgreSQL service in Sydney, connected through Cloudflare Hyperdrive.
+
+| Component | Cloudflare service | Notes |
+|---|---|---|
+| Web application (Next.js) | Workers, deployed with the OpenNext Cloudflare adapter (`@opennextjs/cloudflare`) | Server-side rendering, API routes and admin console. Runs in the Cloudflare location nearest the user (Sydney, Melbourne or Perth for Australian users). |
+| Static assets | Workers Static Assets and CDN cache | Images, scripts and styles served from the edge. |
+| Database connection | Hyperdrive | Connection pooling and caching from Workers to PostgreSQL in Sydney. |
+| Primary database | **Not Cloudflare.** Managed PostgreSQL in Sydney (for example Neon, Supabase or AWS RDS in `ap-southeast-2`) **[Decision D-11]** | See the residency note below. |
+| File storage | R2, with the Oceania location hint | Documents, images, offer letters, invoices. |
+| Background jobs | Queues and Cron Triggers | Email and SMS sending, imports, payment plan runs, reminders. Replaces the Postgres-backed job queue, because Workers do not run long-lived processes. |
+| Security edge | WAF managed rules, rate limiting rules, Bot Fight Mode, Turnstile on public forms, DDoS protection, managed TLS | Covers Section 6.5 edge controls. |
+| DNS | Cloudflare DNS for `berwickcitysc.com` | DNSSEC on. Simplifies cut-over from Majestri. |
+| Secrets | Workers secrets | Database credentials, TOTP encryption key, Stripe and Xero keys. |
+| Admin protection (optional) | Cloudflare Access (Zero Trust) in front of `/admin` | Adds a second identity check for committee users. Free for up to 50 users (confirm). |
+| Logs | Workers Logs, Logpush to R2 or to the log store | Retention target 12 months. |
+| Environments | Separate Workers and R2 buckets for development, staging and production. Preview deployments per pull request. | |
+
+**Data residency note.** Cloudflare is a global network. It does not guarantee that compute or storage stays in Australia unless the club buys the Data Localization Suite (Enterprise plan). The design controls residency as follows:
+- **Personal data at rest** is in the Sydney PostgreSQL database. This is why the database is not D1, which is SQLite-based and has no Australian jurisdiction option.
+- **R2 storage** uses the Oceania location hint. A location hint is best effort, not a guarantee. Restricted documents (offer letters, invoices, medical forms) can move to Sydney object storage if the committee requires a guarantee. **[Decision D-11]**
+- **Compute** processes data in memory, in transit, normally at an Australian Cloudflare location. Nothing is stored at the edge except public cached pages. Pages that show personal data are marked not cacheable.
+- **Privacy notice** names Cloudflare as a service provider with a global network.
+
+**Platform constraints to design for.**
+- Workers have CPU time and bundle size limits. Heavy work (bulk email, imports, PDF generation) runs through Queues in small batches.
+- PDF generation (offer letters, invoices) uses a Workers-compatible library or Cloudflare Browser Rendering. Confirm in Phase 0.
+- Confirm in a Phase 0 proof of concept: Next.js on OpenNext, Better Auth on Workers, Drizzle with Hyperdrive, Stripe webhooks, and the chosen CMS (Payload has a Cloudflare deployment option; confirm Postgres support).
+
+### 5.4 Key design principles
 
 1. **Configuration over code** for forms, fees, workflows, roles and content, so committees do not need a developer each season.
 2. **Hosted payment pages** so card data never enters club systems (PCI DSS SAQ A scope).
 3. **Australian data residency** for the database, files, backups and logs. Identity data is held in the same database. A future identity provider must use an Australian region.
 4. **Least privilege by default**, scoped by role, team and season.
 5. **Everything auditable**: who changed what, and who viewed sensitive child data.
-6. **Infrastructure as code** and documented runbooks, so a new maintainer can operate the platform.
+6. **Infrastructure as code** (Wrangler configuration and the Cloudflare Terraform provider) and documented runbooks, so a new maintainer can operate the platform.
 
 ## 6. Security and privacy architecture
 
@@ -321,16 +353,16 @@ All committee roles carry a term end date. Access expires automatically after th
 | Database | PostgreSQL 16 | Relational integrity for finance and registrations, row-level security option | MySQL |
 | ORM and migrations | Drizzle ORM or Prisma | Typed queries, versioned migrations | Raw SQL |
 | Authentication | Interim: Better Auth (in-house) with email codes, magic links, passkeys and TOTP, behind a provider-neutral identity module. Target: Auth0 Australia region when pricing is confirmed. **[Decision D-09]** | No licence cost, all identity data in Sydney, clean path to a managed provider | Auth0 (target), Clerk (rejected: US hosting only), Microsoft Entra External ID, Auth.js (no built-in MFA) |
-| Background jobs | Postgres-backed queue (pg-boss or Graphile Worker) | No extra infrastructure | Redis + BullMQ |
-| File storage | S3-compatible storage in Sydney region | Documents, images, offer letters | Azure Blob |
+| Background jobs | Cloudflare Queues and Cron Triggers | Native to Workers, no extra infrastructure | Postgres-backed queue (needs a long-running process, not suited to Workers) |
+| File storage | Cloudflare R2 with the Oceania location hint. Option: Sydney object storage for restricted documents **[Decision D-11]** | No egress fees, native to Workers | AWS S3 Sydney |
 | Payments | Stripe AU: Checkout or Payment Element, BECS Direct Debit, Apple Pay, Google Pay | AU entity, hosted PCI scope, direct debit support for payment plans, strong API | Square, Westpac/ Tyro, Ezidebit/ Debitsuccess for plans |
 | Email | Amazon SES (Sydney) or Postmark | Low cost, deliverability tracking | SendGrid |
 | SMS | Australian provider (for example MessageMedia, ClickSend or Twilio with AU sender ID) | Alphanumeric sender ID "BerwickCity" | |
 | Accounting | Xero API (OAuth 2.0) | Current club accounting system **[Verify]** | MYOB |
-| Hosting | Option A: Vercel (Sydney functions) + managed Postgres in Sydney. Option B: AWS ap-southeast-2 (App Runner or ECS Fargate, RDS, S3, SES) **[Decision D-03]** | A is simplest to operate. B gives full control and single-provider data residency. | Azure Australia East |
-| Infrastructure as code | Terraform (Option B) or provider config in repo (Option A) | Repeatable, auditable environments | |
-| CI/CD | GitHub Actions: lint, type check, tests, security scans, preview deployments, gated production deploy | Repository is already on GitHub | |
-| Monitoring | Sentry (error tracking, AU data region if available) plus provider logs and uptime monitoring | | |
+| Hosting | **Cloudflare** Workers (Next.js via OpenNext), Hyperdrive, R2, Queues, WAF, Turnstile and DNS. Managed PostgreSQL in Sydney. **[Decision D-03: decided]** | Low cost, strong edge security, simple operations, one provider for DNS, CDN, WAF and compute | Vercel, AWS `ap-southeast-2` |
+| Infrastructure as code | Wrangler configuration in the repository, Cloudflare Terraform provider for zone, DNS, WAF and Access settings | Repeatable, auditable environments | |
+| CI/CD | GitHub Actions: lint, type check, tests, security scans, Wrangler preview deployments, gated production deploy | Repository is already on GitHub | Cloudflare Workers Builds |
+| Monitoring | Sentry (Cloudflare SDK) plus Workers Logs, Cloudflare analytics and uptime monitoring | | |
 | Testing | Vitest (unit), Playwright (end to end), accessibility checks with axe | | |
 
 ## 8. Data model (core entities)
@@ -367,18 +399,19 @@ Design notes:
 
 ## 9. Indicative operating cost (monthly, AUD)
 
-| Item | Option A (Vercel + managed DB) | Option B (AWS) |
-|---|---|---|
-| Application hosting | $30 to $40 (Pro plan) | $30 to $60 |
-| PostgreSQL (Sydney, with backups) | $25 to $50 | $30 to $70 |
-| File storage and CDN | under $5 | under $10 |
-| Email | under $5 | under $5 |
-| Monitoring | $0 to $40 | $0 to $40 |
-| Identity (in-house now; Auth0 later $0 to about $370, see Section 6.2) | $0 | $0 |
-| Domain and DNS | about $3 | about $3 |
-| **Subtotal (excluding SMS and payment fees)** | **about $65 to $140** | **about $75 to $190** |
+| Item | Cloudflare hosting |
+|---|---|
+| Workers Paid plan (includes Queues, Hyperdrive, Workers Logs allowances) | about $8 (US$5) |
+| Cloudflare zone plan: Free, or Pro for extra WAF managed rules | $0 to about $40 (US$0 to US$25) |
+| R2 storage (first 10 GB free) | under $5 |
+| PostgreSQL in Sydney, with backups and point-in-time recovery | $30 to $75 |
+| Email | under $5 |
+| Monitoring | $0 to $40 |
+| Identity (in-house now; Auth0 later $0 to about $370, see Section 6.2) | $0 |
+| Domain registration | about $3 |
+| **Subtotal (excluding SMS and payment fees)** | **about $45 to $170** |
 
-A later move to Auth0 adds $0 to about $370 a month, depending on the plan that includes MFA. SMS and payment processing are usage-based in both options. These figures are estimates for planning only and need confirmation with current vendor pricing. Penetration testing (one-off, about $5,000 to $15,000) and any paid support retainer are additional. **[Decision D-05]**
+A later move to Auth0 adds $0 to about $370 a month, depending on the plan that includes MFA. SMS and payment processing are usage-based. These figures are estimates for planning only and need confirmation with current vendor pricing. Penetration testing (one-off, about $5,000 to $15,000) and any paid support retainer are additional. **[Decision D-05]**
 
 ## 10. Migration and cut-over
 
@@ -387,7 +420,7 @@ A later move to Auth0 adds $0 to about $370 a month, depending on the plan that 
 3. Migrate content (pages, documents, images) and set up URL redirects from old Majestri paths to new paths.
 4. Parallel run: new public site and new event for one intake, with Majestri retained read-only for historical finance.
 5. Move active payment plans: let existing plans finish in Majestri, start new plans in the new platform. Members must re-authorise direct debits with the new provider.
-6. Switch DNS for `www.berwickcitysc.com`. Keep the Majestri subdomain until historical data is no longer needed.
+6. Move DNS for `berwickcitysc.com` to Cloudflare in advance (records unchanged), then switch the `www` record to the new platform. Keep the Majestri subdomain until historical data is no longer needed.
 7. Close Majestri account and obtain written confirmation of data deletion.
 
 ## 11. Decisions register
@@ -396,7 +429,8 @@ A later move to Auth0 adds $0 to about $370 a month, depending on the plan that 
 |---|---|---|---|
 | D-01 | Build custom platform or stay on Majestri (or hybrid: new public website, keep Majestri back office) | Build / Stay / Hybrid | Committee |
 | D-02 | Go-live date for Phase 2 relative to the 2027 and 2028 intake windows | | Committee, Registrar |
-| D-03 | Hosting option | A (Vercel) / B (AWS) | Secretary, technical lead |
+| D-03 | Hosting option | **Decided: Cloudflare** (Section 5.3), with PostgreSQL in Sydney | Secretary, technical lead |
+| D-11 | Database host and restricted document storage | PostgreSQL provider in Sydney (Neon / Supabase / AWS RDS). R2 with Oceania hint, or Sydney object storage for restricted documents. | Secretary, technical lead |
 | D-04 | CMS approach | Built-in / Payload CMS | Technical lead |
 | D-05 | Operating budget and support model | Volunteer / paid retainer / hybrid | Treasurer, committee |
 | D-06 | Payment provider and fee policy (absorb or pass on fees) | Stripe / other | Treasurer |
@@ -418,12 +452,14 @@ A later move to Auth0 adds $0 to about $370 a month, depending on the plan that 
 | R-07 | Low adoption by committee and coaches | Medium | Medium | Simple admin UX, training guides, champions per age group |
 | R-08 | Larger Phase 2 delays the first registration go-live | Medium | High | Fix the target intake early (D-02), keep Majestri for the next intake if Phase 2 is not ready, cut non-essential Phase 2 items before core finance |
 | R-09 | Weakness in in-house authentication | Medium | High | ASVS V2 and V3 controls (Section 6.2), maintained library, version pinning, advisory monitoring, penetration test, switch criteria for Auth0 |
+| R-10 | Cloudflare platform limits (CPU time, bundle size, Next.js adapter maturity) block a feature | Medium | Medium | Phase 0 proof of concept, Queues for heavy work, keep code portable to a Node.js host |
 
 ## 13. Next steps
 
 1. Committee review of this draft and the current state assessment.
 2. Back-office walkthrough to confirm the modules in use. **Done** (assessment Section 7). Follow-up: the Treasurer confirms the Xero status and supplies revenue and SMS volumes.
-3. Decisions D-01, D-03, D-05, D-08 and D-10. Confirm the Auth0 plan that includes MFA and passkeys, and ask about nonprofit pricing, to decide when to switch from in-house authentication (D-09 follow-up).
+3. Decisions D-01, D-05, D-08, D-10 and D-11. Confirm the Auth0 plan that includes MFA and passkeys, and ask about nonprofit pricing, to decide when to switch from in-house authentication (D-09 follow-up).
 4. Treasurer confirms the Xero connection status now (assessment G-10). This is an operational risk outside the project.
 5. Detailed requirements for Phase 0 and Phase 1.
-6. Repository scaffold, CI/CD and environments (Phase 0 start).
+6. Phase 0 proof of concept on Cloudflare: Next.js on OpenNext, Better Auth, Drizzle with Hyperdrive to Sydney PostgreSQL, Stripe webhooks, PDF generation, CMS choice.
+7. Repository scaffold, CI/CD and environments (Phase 0 start).
