@@ -2,7 +2,7 @@
 
 | Item | Value |
 |---|---|
-| Document status | Draft v0.5 for committee review. Not approved for development. |
+| Document status | Draft v0.6 for committee review. Not approved for development. |
 | Date | 14 November 2026 |
 | Input | `docs/01-current-state-assessment.md`, including the back-office walkthrough (Section 7) |
 | Decisions required | Marked **[Decision]**. Section 11 lists all of them. |
@@ -24,7 +24,7 @@ A custom platform replaces a mature SaaS product. The committee must accept the 
 
 | Factor | Majestri (current) | Custom platform |
 |---|---|---|
-| Subscription | $49/month plus $10/month domain | AWS hosting and services, estimated $140 to $340/month before nonprofit credits (Section 9) |
+| Subscription | $49/month plus $10/month domain | AWS hosting and services, estimated $135 to $285/month before nonprofit credits (Section 9) |
 | Payment fees | 2.9% per payment | Stripe AU, indicative 1.7% + $0.30 domestic card, BECS direct debit lower (verify current Stripe pricing) |
 | Custom forms and fees | Vendor builds on request | Club configures in admin, no vendor dependency |
 | Fixtures and PlayFootball | Not integrated | Can be integrated where the source system allows |
@@ -189,48 +189,58 @@ A **modular monolith**: one deployable application with strict internal module b
 The platform runs on Amazon Web Services in the Asia Pacific (Sydney) Region, `ap-southeast-2`. All personal data at rest, backups and logs stay in this region.
 
 ```
- Users ──> Route 53 ──> CloudFront + AWS WAF ──> Application Load Balancer
-                                                      │
-                          ┌───────────────────────────┴──────────┐
-                          │  ECS Fargate (private app tier)       │
-                          │  - web service (Next.js, 2 tasks)     │
-                          │  - worker service (jobs, 1 task)      │
-                          └───┬───────────────┬───────────────┬───┘
-                              │               │               │
-                     RDS PostgreSQL       S3 buckets       SES (Sydney)
-                     (encrypted, PITR)    (encrypted)      email sending
+ Users ──> Route 53 ──> CloudFront + AWS WAF
+                           │            │
+                           │            └──> S3 (static assets, cached pages)
+                           v
+                  Lambda (Next.js server, via OpenNext) ──┐
+                  Lambda (image optimisation)             │   private subnets
+                                                          │
+   SQS queues ──> Lambda workers (jobs) ──────────────────┤
+   EventBridge Scheduler ──> SQS                          │
+                                                          v
+                  RDS PostgreSQL (encrypted, PITR)    NAT Gateway ──> Internet
+                  S3 (restricted documents)              (Stripe, Xero, SES,
+                  via S3 gateway endpoint                 SMS, Dribl)
 ```
 
 | Component | AWS service | Notes |
 |---|---|---|
 | DNS | Route 53 | DNSSEC on. Health checks. |
-| CDN and edge security | CloudFront with AWS WAF (managed rule groups for common threats, known bad inputs, IP reputation and bot control, plus rate-based rules) | Caches public pages and assets only. Pages with personal data are not cached. |
+| CDN and edge security | CloudFront with AWS WAF (managed rule groups for common threats, known bad inputs, IP reputation and bot control, plus rate-based rules) | Single entry point. Caches public pages and assets only. Pages with personal data are not cached. |
 | TLS certificates | AWS Certificate Manager | Automatic renewal. |
-| Web application | ECS Fargate service behind an Application Load Balancer. Two tasks across two Availability Zones. | Standard Node.js container. Portable to any container host. |
-| Background jobs | ECS Fargate worker service running the Postgres-backed queue (pg-boss), with EventBridge Scheduler for timed jobs | Email and SMS sending, imports, payment plan runs, reminders, PDF generation. No time limits on jobs. |
-| Database | Amazon RDS for PostgreSQL 16, encrypted with KMS, automated backups with point-in-time recovery | Single-AZ or Multi-AZ **[Decision D-11]**. Private subnets only. |
+| Web application | AWS Lambda running the Next.js server, built with OpenNext. Lambda function URL as the CloudFront origin, restricted with CloudFront Origin Access Control so only CloudFront can call it. | No load balancer and no always-on servers. Pay per request. |
+| Static assets and page cache | S3 bucket behind CloudFront. OpenNext revalidation uses DynamoDB and SQS. | |
+| Image optimisation | OpenNext image optimisation Lambda | |
+| Background jobs | Amazon SQS queues with Lambda consumers. EventBridge Scheduler for timed jobs (payment plan runs, reminders, nightly reconciliation). Dead-letter queues with alarms. | Email and SMS sending, imports, PDF generation. Bulk work is split into batches to stay inside the Lambda 15-minute limit. |
+| Database | Amazon RDS for PostgreSQL 16, encrypted with KMS, automated backups with point-in-time recovery | Single-AZ or Multi-AZ **[Decision D-11]**. Private subnets only. Lambda connection pool limited per function and reserved concurrency set, to protect database connections. RDS Proxy is an option if connection limits are reached. |
 | File storage | Amazon S3 (Sydney): separate buckets for public assets and restricted documents. Block Public Access on restricted buckets, SSE-KMS, versioning. | Restricted documents (offer letters, invoices, medical forms) served through short-lived signed URLs. |
 | Email | Amazon SES (Sydney) with DKIM, SPF and DMARC on `berwickcitysc.com` | Bounce and complaint handling feeds the Do Not Email register. |
 | Secrets and keys | AWS Secrets Manager and KMS | Database credentials, TOTP encryption key, Stripe and Xero keys. Automatic rotation for database credentials. |
-| Logs and monitoring | CloudWatch Logs (12-month retention), CloudWatch alarms, Sentry for application errors | Alerts to the technical lead and Secretary. |
+| Logs and monitoring | CloudWatch Logs (12-month retention), CloudWatch alarms (errors, throttles, queue age, dead-letter queues), Sentry for application errors | Alerts to the technical lead and Secretary. |
 | Security services | CloudTrail (all accounts), GuardDuty, Security Hub (AWS Foundational Security Best Practices), AWS Config, IAM Access Analyzer | Supports the Essential Eight and audit evidence. |
-| Backups | AWS Backup plan for RDS and S3, with a copy in a separate backup vault | Quarterly restore test. |
-| Container registry | Amazon ECR with image scanning | |
-| Infrastructure as code | Terraform (or AWS CDK) in the repository, applied through GitHub Actions with OIDC (no long-lived AWS keys) | |
+| Backups | AWS Backup plan for RDS, S3 and DynamoDB, with a copy in a separate backup vault | Quarterly restore test. |
+| Infrastructure as code | Terraform in the repository, with the OpenNext build output deployed as Lambda functions. Applied through GitHub Actions with OIDC (no long-lived AWS keys). | SST is an alternative for the application layer. Confirm in Phase 0. |
 
 **Account and access structure**
 - AWS Organizations with separate accounts: management, production, non-production (development and staging), and log archive.
 - Service control policy restricts all accounts to `ap-southeast-2`, except the global services CloudFront, WAF for CloudFront and ACM certificates for CloudFront, which use `us-east-1`.
 - IAM Identity Center for human access, MFA required, no IAM users with long-lived keys. Root accounts secured with hardware MFA and not used.
 - Two named administrators. Break-glass access sealed and audited.
+- Each Lambda function has its own least-privilege IAM role.
 - AWS Budgets alerts at 50%, 80% and 100% of the monthly budget.
 
 **Network design**
-- VPC across two Availability Zones with public subnets (load balancer only) and private subnets (Fargate, RDS).
-- VPC endpoints for S3, ECR, Secrets Manager and CloudWatch Logs to avoid NAT Gateway cost. A NAT Gateway (or a small NAT instance) is needed only for outbound calls to Stripe, Xero, Dribl and the SMS provider. **[Confirm in Phase 0: NAT Gateway cost against a NAT instance]**
-- Security groups allow only load balancer to web, app to database, and app to endpoints.
+- VPC across two Availability Zones. Private subnets hold the Lambda functions and RDS. Public subnets hold only the NAT Gateway.
+- **One managed AWS NAT Gateway** gives private Lambda functions outbound internet access (Stripe, Xero, SES, Secrets Manager, SMS provider, Dribl). It is fully managed by AWS: no server to patch.
+- An S3 gateway endpoint (no charge) keeps S3 traffic off the NAT Gateway and lowers data processing charges.
+- One NAT Gateway in one Availability Zone keeps cost down. If that zone fails, outbound calls (payments, email) stop until the zone recovers or a second NAT Gateway is deployed from Terraform. A second NAT Gateway in the other zone gives full resilience but doubles the NAT cost. **[Decision D-11]**
+- Security groups allow only Lambda to database and Lambda to outbound HTTPS (port 443).
 
-**Lower-cost alternative (not selected).** Next.js on AWS Lambda using OpenNext (for example with SST) removes the load balancer and always-on containers, and can cost less at club volumes. It adds time limits and more moving parts. The committee can revisit this if AWS credits are not approved.
+**Lambda design constraints**
+- Cold starts add up to about one second to the first request after idle time. A scheduled warmer (included in OpenNext) keeps the server function warm in busy periods. Provisioned concurrency is an option during intake if needed.
+- 15-minute maximum run time per invocation. Long work runs through SQS in batches.
+- Function package size limits. Keep server dependencies lean. Confirm with the CMS choice in Phase 0.
 
 **AWS nonprofit credits.** AWS offers credits for eligible nonprofits through its nonprofit program, delivered in Australia through TechSoup partners. Eligibility usually depends on charity or not-for-profit registration (for example ACNC registration). Confirm that the club, as an incorporated association, is eligible and the credit amount before the budget is approved. **[Action for D-05]**
 
@@ -372,15 +382,15 @@ All committee roles carry a term end date. Access expires automatically after th
 | Database | PostgreSQL 16 | Relational integrity for finance and registrations, row-level security option | MySQL |
 | ORM and migrations | Drizzle ORM or Prisma | Typed queries, versioned migrations | Raw SQL |
 | Authentication | Interim: Better Auth (in-house) with email codes, magic links, passkeys and TOTP, behind a provider-neutral identity module. Target: Auth0 Australia region when pricing is confirmed. **[Decision D-09]** | No licence cost, all identity data in Sydney, clean path to a managed provider | Auth0 (target), Clerk (rejected: US hosting only), Microsoft Entra External ID, Auth.js (no built-in MFA) |
-| Background jobs | Postgres-backed queue (pg-boss) on an ECS Fargate worker, with EventBridge Scheduler | No extra queue service, no job time limits, portable | Amazon SQS |
+| Background jobs | Amazon SQS with Lambda consumers, EventBridge Scheduler for timed jobs, dead-letter queues | Native serverless, pay per use, retries built in | Postgres-backed queue (needs an always-on worker) |
 | File storage | Amazon S3 in Sydney, separate public and restricted buckets | Guaranteed Australian residency, encryption, versioning, signed URLs | |
 | Payments | Stripe AU: Checkout or Payment Element, BECS Direct Debit, Apple Pay, Google Pay | AU entity, hosted PCI scope, direct debit support for payment plans, strong API | Square, Westpac/ Tyro, Ezidebit/ Debitsuccess for plans |
 | Email | Amazon SES (Sydney) | Low cost, Australian region, native to the hosting platform | Postmark |
 | SMS | Australian provider (for example MessageMedia, ClickSend or Twilio with AU sender ID) | Alphanumeric sender ID "BerwickCity" | |
 | Accounting | Xero API (OAuth 2.0) | Current club accounting system **[Verify]** | MYOB |
-| Hosting | **AWS Sydney (`ap-southeast-2`)**: ECS Fargate, Application Load Balancer, CloudFront, AWS WAF, RDS PostgreSQL, S3, SES, Route 53 (Section 5.3). **[Decision D-03: decided]** | Full Australian data residency, mature security services, possible nonprofit credits | Cloudflare (no residency guarantee without Enterprise), Vercel, AWS Lambda with OpenNext |
-| Infrastructure as code | Terraform, applied from GitHub Actions with OIDC federation to AWS | Repeatable, auditable environments, no long-lived cloud keys | AWS CDK |
-| CI/CD | GitHub Actions: lint, type check, tests, security and container image scans, deploy to staging, gated production deploy to ECS | Repository is already on GitHub | AWS CodePipeline |
+| Hosting | **AWS Sydney (`ap-southeast-2`), serverless**: Lambda (Next.js via OpenNext), CloudFront, AWS WAF, RDS PostgreSQL, S3, SQS, SES, Route 53, one managed NAT Gateway (Section 5.3). **[Decision D-03: decided]** | Full Australian data residency, no always-on servers, pay per use, possible nonprofit credits | ECS Fargate (higher fixed cost), Cloudflare (no residency guarantee without Enterprise), Vercel |
+| Infrastructure as code | Terraform with the OpenNext build output, applied from GitHub Actions with OIDC federation to AWS | Repeatable, auditable environments, no long-lived cloud keys | SST, AWS CDK |
+| CI/CD | GitHub Actions: lint, type check, tests, security and container image scans, deploy to staging, gated production deploy to Lambda | Repository is already on GitHub | AWS CodePipeline |
 | Monitoring | Sentry (application errors), CloudWatch Logs and alarms, Route 53 health checks | | |
 | Testing | Vitest (unit), Playwright (end to end), accessibility checks with axe | | |
 
@@ -418,21 +428,20 @@ Design notes:
 
 ## 9. Indicative operating cost (monthly, AUD)
 
-| Item | AWS Sydney (before nonprofit credits) |
+| Item | AWS Sydney, serverless (before nonprofit credits) |
 |---|---|
-| ECS Fargate: web (2 small tasks) and worker (1 small task) | $35 to $60 |
-| Application Load Balancer | $30 to $40 |
+| Lambda (Next.js server, image optimisation, workers). Monthly free allowance likely covers most club traffic. | $0 to $15 |
 | RDS PostgreSQL (db.t4g.micro or small, 20 GB, backups). Multi-AZ about doubles this line. | $25 to $60 |
-| NAT (instance or gateway) and public IPv4 addresses | $10 to $60 |
-| CloudFront, AWS WAF (web ACL and rules) | $15 to $30 |
-| S3, SES, Route 53, Secrets Manager, ECR | $5 to $15 |
+| NAT Gateway, one Availability Zone (hourly charge plus data processing). A second gateway doubles this line. | $70 to $85 |
+| CloudFront and AWS WAF (web ACL and rules) | $15 to $30 |
+| S3, SQS, DynamoDB, SES, Route 53, Secrets Manager | $5 to $15 |
 | CloudWatch, GuardDuty, Security Hub, Config, CloudTrail | $15 to $35 |
 | Monitoring (Sentry) | $0 to $40 |
 | Identity (in-house now; Auth0 later $0 to about $370, see Section 6.2) | $0 |
 | Domain registration | about $3 |
-| **Subtotal (excluding SMS and payment fees)** | **about $140 to $340** |
+| **Subtotal (excluding SMS and payment fees)** | **about $135 to $285** |
 
-AWS nonprofit credits, if approved, offset this cost for the credit period. The Lambda alternative in Section 5.3 can reduce the cost. A later move to Auth0 adds $0 to about $370 a month, depending on the plan that includes MFA. SMS and payment processing are usage-based. These figures are estimates for planning only and need confirmation with current vendor pricing. Penetration testing (one-off, about $5,000 to $15,000) and any paid support retainer are additional. **[Decision D-05]**
+AWS nonprofit credits, if approved, offset this cost for the credit period. The NAT Gateway is the largest fixed line. A later move to Auth0 adds $0 to about $370 a month, depending on the plan that includes MFA. SMS and payment processing are usage-based. These figures are estimates for planning only and need confirmation with current vendor pricing. Penetration testing (one-off, about $5,000 to $15,000) and any paid support retainer are additional. **[Decision D-05]**
 
 ## 10. Migration and cut-over
 
@@ -451,7 +460,7 @@ AWS nonprofit credits, if approved, offset this cost for the credit period. The 
 | D-01 | Build custom platform or stay on Majestri (or hybrid: new public website, keep Majestri back office) | Build / Stay / Hybrid | Committee |
 | D-02 | Go-live date for Phase 2 relative to the 2027 and 2028 intake windows | | Committee, Registrar |
 | D-03 | Hosting option | **Decided: AWS Sydney** (Section 5.3) | Secretary, technical lead |
-| D-11 | Database availability | RDS Single-AZ (lower cost, RTO 8 hours met by restore) / Multi-AZ (automatic failover, about double the database cost) | Treasurer, technical lead |
+| D-11 | Database and network availability | RDS Single-AZ or Multi-AZ (about double the database cost). One NAT Gateway or two (about double the NAT cost). Recommended start: Single-AZ RDS and one NAT Gateway, review after the first intake. | Treasurer, technical lead |
 | D-04 | CMS approach | Built-in / Payload CMS | Technical lead |
 | D-05 | Operating budget and support model | Volunteer / paid retainer / hybrid | Treasurer, committee |
 | D-06 | Payment provider and fee policy (absorb or pass on fees) | Stripe / other | Treasurer |
@@ -473,7 +482,8 @@ AWS nonprofit credits, if approved, offset this cost for the credit period. The 
 | R-07 | Low adoption by committee and coaches | Medium | Medium | Simple admin UX, training guides, champions per age group |
 | R-08 | Larger Phase 2 delays the first registration go-live | Medium | High | Fix the target intake early (D-02), keep Majestri for the next intake if Phase 2 is not ready, cut non-essential Phase 2 items before core finance |
 | R-09 | Weakness in in-house authentication | Medium | High | ASVS V2 and V3 controls (Section 6.2), maintained library, version pinning, advisory monitoring, penetration test, switch criteria for Auth0 |
-| R-10 | AWS costs exceed budget, or nonprofit credits are not approved | Medium | Medium | AWS Budgets alerts, right-size tasks and database, NAT instance instead of NAT Gateway, Lambda alternative (Section 5.3) |
+| R-10 | AWS costs exceed budget, or Lambda and OpenNext limits block a feature | Medium | Medium | AWS Budgets alerts, right-size the database, S3 gateway endpoint, Phase 0 proof of concept, keep code portable to a container host |
+| R-11 | NAT Gateway Availability Zone outage stops payments and email | Low | Medium | Terraform can add a second NAT Gateway quickly, alarms on NAT errors, decision D-11 |
 
 ## 13. Next steps
 
@@ -482,5 +492,5 @@ AWS nonprofit credits, if approved, offset this cost for the credit period. The 
 3. Decisions D-01, D-05, D-08, D-10 and D-11. Check eligibility for AWS nonprofit credits (TechSoup) and apply. Confirm the Auth0 plan that includes MFA and passkeys, and ask about nonprofit pricing, to decide when to switch from in-house authentication (D-09 follow-up).
 4. Treasurer confirms the Xero connection status now (assessment G-10). This is an operational risk outside the project.
 5. Detailed requirements for Phase 0 and Phase 1.
-6. Phase 0: set up AWS Organizations, accounts, guardrails and Terraform baseline. Proof of concept for Next.js on ECS Fargate, Better Auth, Drizzle with RDS, SES, Stripe webhooks, PDF generation and the CMS choice.
+6. Phase 0: set up AWS Organizations, accounts, guardrails and Terraform baseline. Proof of concept for Next.js on Lambda with OpenNext, Better Auth, Drizzle with RDS (connection limits), SQS workers, SES, Stripe webhooks, PDF generation and the CMS choice.
 7. Repository scaffold, CI/CD and environments (Phase 0 start).
