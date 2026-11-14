@@ -2,7 +2,7 @@
 
 | Item | Value |
 |---|---|
-| Document status | Draft v0.7 for committee review. Not approved for development. |
+| Document status | Draft v0.8 for committee review. Not approved for development. |
 | Date | 14 November 2026 |
 | Input | `docs/01-current-state-assessment.md`, including the back-office walkthrough (Section 7) |
 | Decisions required | Marked **[Decision]**. Section 11 lists all of them. |
@@ -236,6 +236,20 @@ The platform runs on Amazon Web Services in the Asia Pacific (Sydney) Region, `a
 - An S3 gateway endpoint (no charge) keeps S3 traffic off the NAT Gateway and lowers data processing charges.
 - One NAT Gateway in one Availability Zone keeps cost down. If that zone fails, outbound calls (payments, email) stop until the zone recovers or a second NAT Gateway is deployed from Terraform. A second NAT Gateway in the other zone gives full resilience but doubles the NAT cost. Decision D-11: one NAT Gateway for now.
 - Security groups allow only Lambda to database and Lambda to outbound HTTPS (port 443).
+
+**Redundancy-ready design (build once, scale by configuration)**
+
+The first release runs with a single RDS instance and one NAT Gateway. The design must let the club add redundancy later by changing Terraform variables, not by redesign or data migration.
+
+| Rule | Implementation |
+|---|---|
+| Two Availability Zones from day one | The VPC, private subnets, public subnets and RDS subnet group span two zones now, even though only one NAT Gateway and one database instance run. |
+| Redundancy as variables | Terraform variables `rds_multi_az` (default `false`), `nat_gateway_count` (default `1`, allowed `1` or `2`), `rds_instance_class`, `lambda_reserved_concurrency`. Private route tables are defined per zone so a second NAT Gateway attaches without changes to other resources. |
+| Stateless compute | Lambda functions keep no local state. Sessions, cache and job state live in RDS, DynamoDB, S3 or SQS. |
+| Idempotent jobs | Every SQS job has an idempotency key, so retries and failover do not send duplicate emails or charge twice. |
+| Database endpoint by name | The application reads the RDS endpoint and credentials from Secrets Manager. A move to Multi-AZ, a read replica or RDS Proxy needs no code change. |
+| Environment parity | Development, staging and production use the same Terraform modules with different variable files. |
+| Upgrade path documented | Runbook steps for enabling Multi-AZ RDS, a second NAT Gateway, RDS Proxy and provisioned concurrency, with the cost of each. |
 
 **Lambda design constraints**
 - Cold starts add up to about one second to the first request after idle time. A scheduled warmer (included in OpenNext) keeps the server function warm in busy periods. Provisioned concurrency is an option during intake if needed.
@@ -492,5 +506,5 @@ AWS nonprofit credits, if approved, offset this cost for the credit period. The 
 3. Decisions D-01, D-05, D-08 and D-10. Check eligibility for AWS nonprofit credits (TechSoup) and apply. Confirm the Auth0 plan that includes MFA and passkeys, and ask about nonprofit pricing, to decide when to switch from in-house authentication (D-09 follow-up).
 4. Treasurer confirms the Xero connection status now (assessment G-10). This is an operational risk outside the project.
 5. Detailed requirements for Phase 0 and Phase 1.
-6. Phase 0: set up AWS Organizations, accounts, guardrails and Terraform baseline. Proof of concept for Next.js on Lambda with OpenNext, Better Auth, Drizzle with RDS (connection limits), SQS workers, SES, Stripe webhooks, PDF generation and the CMS choice.
+6. Proof of concept per `docs/03-poc-plan.md`. Then Phase 0: set up AWS Organizations, accounts, guardrails and Terraform baseline. Proof of concept for Next.js on Lambda with OpenNext, Better Auth, Drizzle with RDS (connection limits), SQS workers, SES, Stripe webhooks, PDF generation and the CMS choice.
 7. Repository scaffold, CI/CD and environments (Phase 0 start).
