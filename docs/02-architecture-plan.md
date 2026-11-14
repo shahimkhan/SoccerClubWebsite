@@ -54,7 +54,7 @@ The walkthrough on 14 November 2026 showed which Majestri modules the club uses 
 
 | Phase | Modules | Replaces | Target window (indicative) |
 |---|---|---|---|
-| 0. Foundations | Identity with MFA (Clerk, Section 6.2), RBAC with fine-grained permissions, audit log, CMS core, transactional email service, CI/CD, environments, hosting, backups | None | Weeks 1 to 4 |
+| 0. Foundations | Identity with MFA (Auth0 Australia region, Section 6.2), RBAC with fine-grained permissions, audit log, CMS core, transactional email service, CI/CD, environments, hosting, backups | None | Weeks 1 to 4 |
 | 1. Public website | Pages, news, menu, documents, sponsors (5 tiers), venues, contact form, fixtures display, privacy collection notice | Majestri website, Canva directory, manual fixture tables | Weeks 5 to 10 |
 | 2. Registration and core finance | Event engine (season, EOI, clinic, academy, term program, ticketed, photo orders), configurable intake stages, offers with expiry, form builder, fee rules (including switchover fees), family registration, T&Cs, modified-registration approval queue, PlayFootball reconciliation. Core finance: invoices, card payments, payment plans (direct debit) with approval queue, manual receipting (EFT, cash, EFTPOS, vouchers), eVouchers, adjustments, credit notes, refunds, debtors list. Transactional email: registration invites (single and bulk), offer letters, invoices, receipts and statements, with the Do Not Email and delivery problem registers. | Majestri events, intake, registrations and day-to-day financials, Google Forms | Weeks 11 to 28. Must be live and tested before the intake window it is used for. |
 | 3. Teams, safeguarding and communications | Team administration, officials, WWCC accreditation register with expiry blocking, schedules, attendance, broadcast email and SMS to filtered audiences, saved groups, message log, role addresses, notification routing, game-day duty roster | Majestri teams, accreditation and broadcast comms, Google Sheets rosters | Weeks 29 to 36 |
@@ -88,7 +88,7 @@ Full requirements will be written per module before each phase. The summary belo
 
 ### 4.2 Members and families
 - Family account: two adult guardians, multiple players, extra notification-only email addresses.
-- Passwordless sign-in (email code or magic link, through Clerk) for members. Invite links for returning families.
+- Passwordless sign-in (email code or magic link, through Auth0) for members. Invite links for returning families.
 - Member self-service: profile, players, registrations, invoices, receipts, payment plans, communication preferences.
 - Player history across seasons.
 
@@ -187,7 +187,7 @@ A **modular monolith**: one deployable application with strict internal module b
 
 1. **Configuration over code** for forms, fees, workflows, roles and content, so committees do not need a developer each season.
 2. **Hosted payment pages** so card data never enters club systems (PCI DSS SAQ A scope).
-3. **Australian data residency** for the database, files, backups and logs. Exception: the identity provider, if Clerk is approved (decision D-09), holds adult email addresses and sign-in factors in the United States.
+3. **Australian data residency** for the database, files, backups and logs. The identity provider (Auth0) uses its Australia region.
 4. **Least privilege by default**, scoped by role, team and season.
 5. **Everything auditable**: who changed what, and who viewed sensitive child data.
 6. **Infrastructure as code** and documented runbooks, so a new maintainer can operate the platform.
@@ -214,30 +214,29 @@ A **modular monolith**: one deployable application with strict internal module b
 | Members (guardians, adult players) | Email code, magic link or passkey. No password by default. |
 | Coaches, managers, volunteers | Email code, magic link or passkey. MFA required to see guardian contact data. |
 | Committee and administrators | Passkey or TOTP MFA mandatory. Session timeout 30 minutes idle. Re-authentication for finance and bulk export actions. |
-| Platform operators | Cloud console and Clerk dashboard with MFA, no shared accounts, break-glass account sealed and audited. |
+| Platform operators | Cloud console and Auth0 dashboard with MFA, no shared accounts, break-glass account sealed and audited. |
 
 Players under 18 do not get sign-in accounts. Guardians act for them.
 
-**Identity provider: Clerk (proposed, decision D-09)**
+**Identity provider: Auth0 by Okta, Australia region (selected, decision D-09)**
 
-Clerk provides sign-in, MFA, passkeys, sessions and bot protection as a managed service. The application keeps all authorisation logic (roles, committee terms, team scopes, permissions) in its own database. Clerk only answers "who is this person".
+Auth0 provides sign-in, MFA, passkeys, sessions, breached-password detection and bot protection as a managed service. The application keeps all authorisation logic (roles, committee terms, team scopes, permissions) in its own database. Auth0 only answers "who is this person".
 
 | Factor | Assessment |
 |---|---|
-| Fit | Prebuilt Next.js App Router integration and middleware. Supports email codes, magic links, passkeys, TOTP, backup codes and session management. Removes the need for the club to build and maintain sign-in security. |
-| Cost | Free plan includes 50,000 monthly retained users. The club has about 1,000 to 1,500 adult users. MFA and passkeys need the Pro plan, about US$25 a month (US$20 if billed yearly). Confirm current pricing before budgeting. |
-| Data residency | **Clerk hosts data in the United States and does not offer an Australian region.** This conflicts with design principle 3 and needs a decision. |
-| Privacy (APP 8) | Clerk receives personal information of adults only. The club must disclose the overseas recipient in its privacy collection notice and accept Clerk's Data Processing Addendum. |
-| Security assurance | Review Clerk's security page, trust portal and SOC 2 report before contract. |
-| Lock-in | Low with passwordless sign-in. There are no password hashes to migrate. Users can move to another provider by email address. |
+| Fit | Official Next.js SDK (`@auth0/nextjs-auth0`) with App Router support. Universal Login (hosted sign-in pages) keeps credentials off club pages. Supports passwordless email codes and magic links, passkeys, TOTP, WebAuthn and recovery codes. |
+| Data residency | Auth0 public cloud has an Australia region (tenant domain `*.au.auth0.com`). Auth0 states that tenant data stays in the selected region. The region is fixed when the tenant is created and cannot be changed later. Confirm sub-processors (support, logging, email) in the Auth0 Data Processing Addendum. |
+| Privacy (APP 8) | Primary storage in Australia. List Auth0 (Okta) as a service provider in the privacy collection notice, and record any sub-processors outside Australia. |
+| Cost | **Open item.** The free plan covers the club's user numbers (about 1,000 to 1,500 adults). Third-party sources disagree on which plan includes MFA and passkeys. If committee MFA needs the B2C Professional plan, the cost is about US$240 a month. Confirm on the Auth0 pricing page and ask Auth0 or Okta for Good about nonprofit pricing before the hosting budget is approved (decision D-05). |
+| Security assurance | Okta publishes SOC 2 Type II and ISO 27001 reports on its trust portal. Review before go-live. |
+| Lock-in | Low with passwordless sign-in. User export is available, and there are no club-managed password hashes. |
 
-Conditions for using Clerk:
-1. **Data minimisation.** Clerk stores only the email address, an internal user ID and authentication factors. Names, phone numbers, addresses, all child data, WWCC data and financial data stay in the Australian database.
-2. **No authorisation data in Clerk.** Do not use Clerk Organizations or metadata for roles. The application database is the single source of truth for access.
-3. **Disclosure.** The privacy collection notice names Clerk as an overseas service provider in the United States.
-4. **Exit plan.** Document the steps to move to an alternative provider. Keep the user mapping (Clerk ID to internal person ID) in the application database.
-
-Alternatives if the committee requires Australian residency for all personal data: Auth0 (Australian region availability and plan to be confirmed), Microsoft Entra External ID (Australian data location to be confirmed), or self-hosted Better Auth or Auth.js in the application (data stays in Sydney, but the club maintains sign-in security).
+Conditions for using Auth0:
+1. **Australia region.** Create every tenant (development, staging, production) in the Australia region. Use separate tenants per environment.
+2. **Data minimisation.** Auth0 stores only the email address, an internal user ID and authentication factors. Names, phone numbers, addresses, all child data, WWCC data and financial data stay in the application database.
+3. **No authorisation data in Auth0.** Do not use Auth0 roles, Organizations or app metadata for club permissions. The application database is the single source of truth for access.
+4. **Hardening.** Universal Login only, MFA policy enforced for committee and officials, brute-force and breached-password protection on, sign-in logs streamed to the club's log store in Australia, tenant administrators limited to two named people with MFA.
+5. **Exit plan.** Document the steps to move to another provider. Keep the user mapping (Auth0 user ID to internal person ID) in the application database.
 
 Controls: rate limiting and lockout on sign-in, signed short-lived magic links (15 minutes, single use), secure HTTP-only cookies, CSRF protection, session revocation on role removal.
 
@@ -299,7 +298,7 @@ All committee roles carry a term end date. Access expires automatically after th
 | CMS | Built-in section-based CMS in the app, or Payload CMS embedded in the Next.js app **[Decision D-04]** | Payload runs inside Next.js on the same Postgres, so no extra service | Strapi, Sanity (SaaS, data offshore) |
 | Database | PostgreSQL 16 | Relational integrity for finance and registrations, row-level security option | MySQL |
 | ORM and migrations | Drizzle ORM or Prisma | Typed queries, versioned migrations | Raw SQL |
-| Authentication | Clerk (Pro plan) with email codes, magic links, passkeys and TOTP. Authorisation stays in the application database. **[Decision D-09]** | Managed sign-in security, strong Next.js support, free tier covers club volumes, low lock-in with passwordless sign-in | Better Auth or Auth.js (self-hosted, data in Australia), Auth0, Microsoft Entra External ID |
+| Authentication | Auth0 (Australia region) with Universal Login, email codes, magic links, passkeys and TOTP. Authorisation stays in the application database. **[Decision D-09]** | Managed sign-in security, Australian data residency, official Next.js SDK, mature attack protection | Clerk (rejected: US hosting only), Microsoft Entra External ID, self-hosted Better Auth or Auth.js |
 | Background jobs | Postgres-backed queue (pg-boss or Graphile Worker) | No extra infrastructure | Redis + BullMQ |
 | File storage | S3-compatible storage in Sydney region | Documents, images, offer letters | Azure Blob |
 | Payments | Stripe AU: Checkout or Payment Element, BECS Direct Debit, Apple Pay, Google Pay | AU entity, hosted PCI scope, direct debit support for payment plans, strong API | Square, Westpac/ Tyro, Ezidebit/ Debitsuccess for plans |
@@ -353,11 +352,11 @@ Design notes:
 | File storage and CDN | under $5 | under $10 |
 | Email | under $5 | under $5 |
 | Monitoring | $0 to $40 | $0 to $40 |
-| Clerk Pro (US$20 to US$25) | about $30 to $40 | about $30 to $40 |
+| Auth0 (free plan to B2C Professional, see Section 6.2) | $0 to about $370 | $0 to about $370 |
 | Domain and DNS | about $3 | about $3 |
-| **Subtotal (excluding SMS and payment fees)** | **about $95 to $180** | **about $105 to $230** |
+| **Subtotal (excluding SMS and payment fees)** | **about $65 to $510** | **about $75 to $560** |
 
-SMS and payment processing are usage-based in both options. These figures are estimates for planning only and need confirmation with current vendor pricing. Penetration testing (one-off, about $5,000 to $15,000) and any paid support retainer are additional. **[Decision D-05]**
+The Auth0 line has the widest range. The upper figure applies only if committee MFA needs the Professional plan. Confirm the plan before the budget is approved. SMS and payment processing are usage-based in both options. These figures are estimates for planning only and need confirmation with current vendor pricing. Penetration testing (one-off, about $5,000 to $15,000) and any paid support retainer are additional. **[Decision D-05]**
 
 ## 10. Migration and cut-over
 
@@ -381,7 +380,7 @@ SMS and payment processing are usage-based in both options. These figures are es
 | D-06 | Payment provider and fee policy (absorb or pass on fees) | Stripe / other | Treasurer |
 | D-07 | Data retention schedule | | Secretary |
 | D-08 | Modules in scope (which Majestri modules are actually used) | Evidence collected on 14 Nov 2026 (assessment Section 7.11). Proposed scope in Section 3.1: core, required, new, deferred and out of scope. Committee to confirm the deferred list and Xero status. | Committee |
-| D-09 | Identity provider | Clerk (proposed, US-hosted, conditions in Section 6.2) / Auth0 / Entra External ID / self-hosted | Secretary, technical lead |
+| D-09 | Identity provider | **Decided: Auth0, Australia region** (conditions in Section 6.2). Clerk rejected because it has no Australian region. Open: Auth0 plan and nonprofit pricing. | Secretary, technical lead |
 | D-10 | Watchlist (people of concern) in scope | Build in Phase 3 / defer / out of scope. Not used in Majestri today, but it is a child-safety control. | Child Safety Officer, committee |
 
 ## 12. Risks
@@ -396,13 +395,13 @@ SMS and payment processing are usage-based in both options. These figures are es
 | R-06 | No API access to Dribl or PlayFootball | High | Medium | CSV import fallback, request access from Football Victoria |
 | R-07 | Low adoption by committee and coaches | Medium | Medium | Simple admin UX, training guides, champions per age group |
 | R-08 | Larger Phase 2 delays the first registration go-live | Medium | High | Fix the target intake early (D-02), keep Majestri for the next intake if Phase 2 is not ready, cut non-essential Phase 2 items before core finance |
-| R-09 | Identity provider outage or pricing change (Clerk) | Low | Medium | Exit plan, user mapping in the club database, passwordless design for easy migration |
+| R-09 | Identity provider outage, or MFA requires a higher-cost Auth0 plan | Medium | Medium | Exit plan, user mapping in the club database, passwordless design for easy migration |
 
 ## 13. Next steps
 
 1. Committee review of this draft and the current state assessment.
 2. Back-office walkthrough to confirm the modules in use. **Done** (assessment Section 7). Follow-up: the Treasurer confirms the Xero status and supplies revenue and SMS volumes.
-3. Decisions D-01, D-03, D-05, D-08, D-09 and D-10.
+3. Decisions D-01, D-03, D-05, D-08 and D-10. Confirm the Auth0 plan that includes MFA and passkeys, and ask about nonprofit pricing (D-09 follow-up).
 4. Treasurer confirms the Xero connection status now (assessment G-10). This is an operational risk outside the project.
 5. Detailed requirements for Phase 0 and Phase 1.
 6. Repository scaffold, CI/CD and environments (Phase 0 start).
