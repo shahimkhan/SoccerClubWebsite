@@ -2,7 +2,7 @@
 
 | Item | Value |
 |---|---|
-| Document status | Draft v0.6 for committee review. Not approved for development. |
+| Document status | Draft v0.7 for committee review. Not approved for development. |
 | Date | 14 November 2026 |
 | Input | `docs/01-current-state-assessment.md`, including the back-office walkthrough (Section 7) |
 | Decisions required | Marked **[Decision]**. Section 11 lists all of them. |
@@ -213,7 +213,7 @@ The platform runs on Amazon Web Services in the Asia Pacific (Sydney) Region, `a
 | Static assets and page cache | S3 bucket behind CloudFront. OpenNext revalidation uses DynamoDB and SQS. | |
 | Image optimisation | OpenNext image optimisation Lambda | |
 | Background jobs | Amazon SQS queues with Lambda consumers. EventBridge Scheduler for timed jobs (payment plan runs, reminders, nightly reconciliation). Dead-letter queues with alarms. | Email and SMS sending, imports, PDF generation. Bulk work is split into batches to stay inside the Lambda 15-minute limit. |
-| Database | Amazon RDS for PostgreSQL 16, encrypted with KMS, automated backups with point-in-time recovery | Single-AZ or Multi-AZ **[Decision D-11]**. Private subnets only. Lambda connection pool limited per function and reserved concurrency set, to protect database connections. RDS Proxy is an option if connection limits are reached. |
+| Database | Amazon RDS for PostgreSQL 16, encrypted with KMS, automated backups with point-in-time recovery | Single-AZ (decision D-11). Private subnets only. Recovery from an Availability Zone failure is by point-in-time restore into another zone, within the 8-hour RTO. Lambda connection pool limited per function and reserved concurrency set, to protect database connections. RDS Proxy is an option if connection limits are reached. |
 | File storage | Amazon S3 (Sydney): separate buckets for public assets and restricted documents. Block Public Access on restricted buckets, SSE-KMS, versioning. | Restricted documents (offer letters, invoices, medical forms) served through short-lived signed URLs. |
 | Email | Amazon SES (Sydney) with DKIM, SPF and DMARC on `berwickcitysc.com` | Bounce and complaint handling feeds the Do Not Email register. |
 | Secrets and keys | AWS Secrets Manager and KMS | Database credentials, TOTP encryption key, Stripe and Xero keys. Automatic rotation for database credentials. |
@@ -234,7 +234,7 @@ The platform runs on Amazon Web Services in the Asia Pacific (Sydney) Region, `a
 - VPC across two Availability Zones. Private subnets hold the Lambda functions and RDS. Public subnets hold only the NAT Gateway.
 - **One managed AWS NAT Gateway** gives private Lambda functions outbound internet access (Stripe, Xero, SES, Secrets Manager, SMS provider, Dribl). It is fully managed by AWS: no server to patch.
 - An S3 gateway endpoint (no charge) keeps S3 traffic off the NAT Gateway and lowers data processing charges.
-- One NAT Gateway in one Availability Zone keeps cost down. If that zone fails, outbound calls (payments, email) stop until the zone recovers or a second NAT Gateway is deployed from Terraform. A second NAT Gateway in the other zone gives full resilience but doubles the NAT cost. **[Decision D-11]**
+- One NAT Gateway in one Availability Zone keeps cost down. If that zone fails, outbound calls (payments, email) stop until the zone recovers or a second NAT Gateway is deployed from Terraform. A second NAT Gateway in the other zone gives full resilience but doubles the NAT cost. Decision D-11: one NAT Gateway for now.
 - Security groups allow only Lambda to database and Lambda to outbound HTTPS (port 443).
 
 **Lambda design constraints**
@@ -431,8 +431,8 @@ Design notes:
 | Item | AWS Sydney, serverless (before nonprofit credits) |
 |---|---|
 | Lambda (Next.js server, image optimisation, workers). Monthly free allowance likely covers most club traffic. | $0 to $15 |
-| RDS PostgreSQL (db.t4g.micro or small, 20 GB, backups). Multi-AZ about doubles this line. | $25 to $60 |
-| NAT Gateway, one Availability Zone (hourly charge plus data processing). A second gateway doubles this line. | $70 to $85 |
+| RDS PostgreSQL (Single-AZ, db.t4g.micro or small, 20 GB, backups). Multi-AZ would about double this line. | $25 to $60 |
+| NAT Gateway, one Availability Zone (hourly charge plus data processing). A second gateway would double this line. | $70 to $85 |
 | CloudFront and AWS WAF (web ACL and rules) | $15 to $30 |
 | S3, SQS, DynamoDB, SES, Route 53, Secrets Manager | $5 to $15 |
 | CloudWatch, GuardDuty, Security Hub, Config, CloudTrail | $15 to $35 |
@@ -460,7 +460,7 @@ AWS nonprofit credits, if approved, offset this cost for the credit period. The 
 | D-01 | Build custom platform or stay on Majestri (or hybrid: new public website, keep Majestri back office) | Build / Stay / Hybrid | Committee |
 | D-02 | Go-live date for Phase 2 relative to the 2027 and 2028 intake windows | | Committee, Registrar |
 | D-03 | Hosting option | **Decided: AWS Sydney** (Section 5.3) | Secretary, technical lead |
-| D-11 | Database and network availability | RDS Single-AZ or Multi-AZ (about double the database cost). One NAT Gateway or two (about double the NAT cost). Recommended start: Single-AZ RDS and one NAT Gateway, review after the first intake. | Treasurer, technical lead |
+| D-11 | Database and network availability | **Decided: Single-AZ RDS and one NAT Gateway.** Review after the first intake on the new platform. Upgrade path: Multi-AZ RDS and a second NAT Gateway, both by Terraform change. | Treasurer, technical lead |
 | D-04 | CMS approach | Built-in / Payload CMS | Technical lead |
 | D-05 | Operating budget and support model | Volunteer / paid retainer / hybrid | Treasurer, committee |
 | D-06 | Payment provider and fee policy (absorb or pass on fees) | Stripe / other | Treasurer |
@@ -483,13 +483,13 @@ AWS nonprofit credits, if approved, offset this cost for the credit period. The 
 | R-08 | Larger Phase 2 delays the first registration go-live | Medium | High | Fix the target intake early (D-02), keep Majestri for the next intake if Phase 2 is not ready, cut non-essential Phase 2 items before core finance |
 | R-09 | Weakness in in-house authentication | Medium | High | ASVS V2 and V3 controls (Section 6.2), maintained library, version pinning, advisory monitoring, penetration test, switch criteria for Auth0 |
 | R-10 | AWS costs exceed budget, or Lambda and OpenNext limits block a feature | Medium | Medium | AWS Budgets alerts, right-size the database, S3 gateway endpoint, Phase 0 proof of concept, keep code portable to a container host |
-| R-11 | NAT Gateway Availability Zone outage stops payments and email | Low | Medium | Terraform can add a second NAT Gateway quickly, alarms on NAT errors, decision D-11 |
+| R-11 | Availability Zone outage stops payments and email (single NAT Gateway) or the database (Single-AZ RDS) | Low | Medium | Documented runbook: deploy a NAT Gateway in the other zone by Terraform and restore RDS into the other zone from point-in-time backup. Rehearse once before Phase 2 go-live. Review D-11 after the first intake. |
 
 ## 13. Next steps
 
 1. Committee review of this draft and the current state assessment.
 2. Back-office walkthrough to confirm the modules in use. **Done** (assessment Section 7). Follow-up: the Treasurer confirms the Xero status and supplies revenue and SMS volumes.
-3. Decisions D-01, D-05, D-08, D-10 and D-11. Check eligibility for AWS nonprofit credits (TechSoup) and apply. Confirm the Auth0 plan that includes MFA and passkeys, and ask about nonprofit pricing, to decide when to switch from in-house authentication (D-09 follow-up).
+3. Decisions D-01, D-05, D-08 and D-10. Check eligibility for AWS nonprofit credits (TechSoup) and apply. Confirm the Auth0 plan that includes MFA and passkeys, and ask about nonprofit pricing, to decide when to switch from in-house authentication (D-09 follow-up).
 4. Treasurer confirms the Xero connection status now (assessment G-10). This is an operational risk outside the project.
 5. Detailed requirements for Phase 0 and Phase 1.
 6. Phase 0: set up AWS Organizations, accounts, guardrails and Terraform baseline. Proof of concept for Next.js on Lambda with OpenNext, Better Auth, Drizzle with RDS (connection limits), SQS workers, SES, Stripe webhooks, PDF generation and the CMS choice.
