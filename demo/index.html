@@ -1,0 +1,653 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Club Platform Demo</title>
+<meta name="description" content="Clickable demo of the proposed Berwick City SC website, member portal and admin console. Test data only.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --brand:#e11212; --brand-dark:#87090a; --brand-soft:#fdeaea;
+  --ink:#151515; --ink-2:#4a4f55; --ink-3:#7a8088;
+  --bg:#f6f6f7; --surface:#ffffff; --surface-2:#f0f1f3; --line:#e2e4e8;
+  --ok:#1f8a4c; --ok-soft:#e5f5ec; --warn:#b26a00; --warn-soft:#fff3df; --info:#1d5fbf; --info-soft:#e7effb;
+  --shadow:0 1px 2px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.06);
+  --radius:12px;
+  --font-head:"Archivo",system-ui,sans-serif; --font-body:"Nunito Sans",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --brand:#ff3b3b; --brand-dark:#b31212; --brand-soft:#3a1616;
+    --ink:#f2f2f3; --ink-2:#c3c7cd; --ink-3:#8d939b;
+    --bg:#0f1012; --surface:#17191c; --surface-2:#202328; --line:#2c3036;
+    --ok:#4cc782; --ok-soft:#163223; --warn:#f0a83a; --warn-soft:#3a2a10; --info:#6ea6ff; --info-soft:#14233d;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 4px 16px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"]{
+  --brand:#ff3b3b; --brand-dark:#b31212; --brand-soft:#3a1616;
+  --ink:#f2f2f3; --ink-2:#c3c7cd; --ink-3:#8d939b;
+  --bg:#0f1012; --surface:#17191c; --surface-2:#202328; --line:#2c3036;
+  --ok:#4cc782; --ok-soft:#163223; --warn:#f0a83a; --warn-soft:#3a2a10; --info:#6ea6ff; --info-soft:#14233d;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 4px 16px rgba(0,0,0,.3);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.55 var(--font-body);-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{font-family:var(--font-head);line-height:1.2;margin:0 0 .5em}
+h1{font-size:clamp(1.8rem,4vw,2.8rem);font-weight:800}
+h2{font-size:1.5rem;font-weight:800}
+h3{font-size:1.1rem;font-weight:700}
+p{margin:0 0 1em}
+a{color:var(--brand)}
+button,input,select,textarea{font:inherit;color:inherit}
+.wrap{max-width:1160px;margin:0 auto;padding:0 16px}
+.muted{color:var(--ink-3)}
+.small{font-size:.875rem}
+.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.grow{flex:1}
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.g4{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+.g-main{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}
+@media (max-width:860px){.g-main{grid-template-columns:minmax(0,1fr)}}
+.app > div{min-width:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow)}
+.btn{display:inline-flex;align-items:center;gap:8px;border:1px solid transparent;border-radius:999px;padding:9px 18px;font-weight:700;cursor:pointer;text-decoration:none;background:var(--surface-2);color:var(--ink);transition:background .15s}
+.btn:hover{filter:brightness(.97)}
+.btn-primary{background:var(--brand);color:#fff}
+.btn-primary:hover{background:var(--brand-dark)}
+.btn-ghost{background:transparent;border-color:var(--line)}
+.btn-sm{padding:6px 12px;font-size:.85rem}
+.btn:focus-visible,.tab:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,.nav a:focus-visible{outline:3px solid var(--info);outline-offset:2px}
+.pill{display:inline-block;border-radius:999px;padding:2px 10px;font-size:.78rem;font-weight:700;background:var(--surface-2);color:var(--ink-2);white-space:nowrap}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.info{background:var(--info-soft);color:var(--info)}
+.pill.red{background:var(--brand-soft);color:var(--brand)}
+table{width:100%;border-collapse:collapse;font-size:.92rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-family:var(--font-head);font-size:.78rem;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-3);font-weight:700}
+.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface)}
+.table-wrap table th:first-child,.table-wrap table td:first-child{padding-left:16px}
+label{display:block;font-weight:700;font-size:.9rem;margin:0 0 4px}
+input[type=text],input[type=email],input[type=date],input[type=tel],select,textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+.field{margin-bottom:14px}
+.check{display:flex;gap:10px;align-items:flex-start;font-weight:400}
+.check input{margin-top:4px}
+
+/* demo bar */
+.demobar{background:#000;color:#fff;font-size:.85rem}
+.demobar .wrap{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding-top:8px;padding-bottom:8px}
+.demobar .tag{background:#ffd23f;color:#000;font-weight:800;border-radius:4px;padding:1px 8px;font-size:.75rem}
+.tabs{display:flex;gap:4px;flex-wrap:wrap}
+.tab{background:transparent;border:1px solid #444;color:#fff;border-radius:999px;padding:4px 12px;cursor:pointer;font-weight:700;font-size:.82rem}
+.tab[aria-pressed=true]{background:#fff;color:#000;border-color:#fff}
+.themebtn{margin-left:auto}
+
+/* public site */
+.site-head{background:var(--brand);color:#fff;position:sticky;top:0;z-index:20}
+.site-head .wrap{display:flex;align-items:center;gap:16px;min-height:64px}
+.crest{width:40px;height:40px;border-radius:50%;background:#fff;color:var(--brand);display:grid;place-items:center;font-family:var(--font-head);font-weight:800;font-size:.85rem;flex:none;border:3px solid #151515}
+.brandname{font-family:var(--font-head);font-weight:800;font-size:1.05rem;line-height:1.1;color:#fff;text-decoration:none}
+.nav{display:flex;gap:2px;margin-left:auto;flex-wrap:wrap}
+.nav a{color:#fff;text-decoration:none;font-weight:700;padding:8px 12px;border-radius:8px;font-size:.92rem}
+.nav a:hover,.nav a[aria-current=page]{background:rgba(0,0,0,.18)}
+.menu-toggle{display:none;margin-left:auto;background:rgba(0,0,0,.2);color:#fff;border:0;border-radius:8px;padding:8px 12px;font-weight:700}
+@media (max-width:860px){
+  .menu-toggle{display:inline-block}
+  .nav{display:none;position:absolute;left:0;right:0;top:64px;background:var(--brand-dark);flex-direction:column;padding:8px 16px 16px}
+  .nav.open{display:flex}
+}
+.status-strip{background:#151515;color:#fff;font-size:.85rem}
+.status-strip .wrap{display:flex;gap:16px;flex-wrap:wrap;padding-top:6px;padding-bottom:6px}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:#4cc782}
+.dot.closed{background:#ff5a5a}
+.hero{background:linear-gradient(135deg,#151515 0%,#2b3136 55%,var(--brand-dark) 100%);color:#fff;padding:56px 0}
+.hero p{color:#e8e8e8;max-width:620px;font-size:1.08rem}
+.hero .stats{display:flex;gap:28px;flex-wrap:wrap;margin-top:24px}
+.hero .stat b{display:block;font-family:var(--font-head);font-size:1.8rem}
+.section{padding:40px 0}
+.section-head{display:flex;align-items:end;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.news-img{height:140px;border-radius:8px;margin:-4px -4px 14px;background:linear-gradient(135deg,var(--brand) 0%,#151515 100%);display:grid;place-items:center;color:#fff;font-family:var(--font-head);font-weight:800;font-size:1.4rem;opacity:.92}
+.event-card{display:flex;flex-direction:column;gap:8px}
+.event-card .meta{display:flex;gap:8px;flex-wrap:wrap}
+.fixture{display:grid;grid-template-columns:90px 1fr auto;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+.fixture:last-child{border-bottom:0}
+.fx-date{font-family:var(--font-head);font-weight:700;font-size:.85rem;color:var(--ink-3)}
+.sponsor-tier{margin-bottom:20px}
+.sponsor-logos{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.logo-box{border:1px dashed var(--line);border-radius:10px;height:70px;display:grid;place-items:center;font-family:var(--font-head);font-weight:700;color:var(--ink-3);background:var(--surface);text-align:center;padding:6px;font-size:.88rem}
+.site-foot{background:#151515;color:#cfd2d6;padding:32px 0;margin-top:24px;font-size:.9rem}
+.site-foot a{color:#fff}
+
+/* wizard */
+.steps{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px}
+.step{flex:1;min-width:110px;padding:8px 10px;border-radius:8px;background:var(--surface-2);font-size:.82rem;font-weight:700;color:var(--ink-3)}
+.step.done{background:var(--ok-soft);color:var(--ok)}
+.step.active{background:var(--brand);color:#fff}
+.sum-line{display:flex;justify-content:space-between;padding:6px 0}
+.sum-total{border-top:2px solid var(--ink);margin-top:6px;padding-top:10px;font-weight:800;font-size:1.1rem}
+.paybox{border:2px solid var(--line);border-radius:10px;padding:14px;cursor:pointer;display:block;font-weight:400}
+.paybox:has(input:checked){border-color:var(--brand);background:var(--brand-soft)}
+
+/* app shell (portal + admin) */
+.app{display:grid;grid-template-columns:240px 1fr;min-height:calc(100vh - 44px)}
+.side{background:#151515;color:#d7d9dc;padding:16px 12px;position:sticky;top:0;height:calc(100vh - 44px);overflow:auto}
+.side .who{display:flex;gap:10px;align-items:center;padding:6px 8px 16px;border-bottom:1px solid #2b2f34;margin-bottom:10px}
+.side .avatar{width:34px;height:34px;border-radius:50%;background:var(--brand);color:#fff;display:grid;place-items:center;font-weight:800;font-size:.8rem}
+.side a{display:flex;justify-content:space-between;align-items:center;color:#d7d9dc;text-decoration:none;padding:9px 10px;border-radius:8px;font-weight:600;font-size:.93rem}
+.side a:hover{background:#22262b}
+.side a[aria-current=page]{background:var(--brand);color:#fff}
+.side .grp{font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:#8a9097;margin:14px 10px 4px}
+.side .count{background:#2b2f34;border-radius:999px;padding:0 8px;font-size:.75rem}
+.main{padding:24px;min-width:0}
+.page-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.page-head p{margin:0}
+.kpi .n{font-family:var(--font-head);font-size:1.9rem;font-weight:800;line-height:1.1}
+.kpi .l{color:var(--ink-3);font-size:.85rem;font-weight:700}
+.kpi .d{font-size:.82rem;margin-top:4px}
+.bar{height:8px;border-radius:999px;background:var(--surface-2);overflow:hidden}
+.bar > span{display:block;height:100%;background:var(--brand)}
+.list-item{display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.list-item:last-child{border-bottom:0}
+.kanban{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(220px,1fr);gap:12px;overflow-x:auto;padding-bottom:8px}
+.lane{background:var(--surface-2);border-radius:var(--radius);padding:10px}
+.lane h4{display:flex;justify-content:space-between;font-size:.9rem;margin:2px 4px 10px}
+.kcard{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:8px;font-size:.88rem}
+.kcard .acts{display:flex;gap:6px;margin-top:8px}
+.matrix td,.matrix th{text-align:center}
+.matrix td:first-child,.matrix th:first-child{text-align:left}
+.tick{color:var(--ok);font-weight:800}
+.cross{color:var(--ink-3)}
+.editor-sec{border:2px dashed var(--line);border-radius:10px;padding:14px;margin-bottom:10px;position:relative}
+.editor-sec:hover{border-color:var(--brand)}
+.editor-sec .tools{position:absolute;top:8px;right:8px;display:flex;gap:6px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(120px);background:#151515;color:#fff;padding:12px 18px;border-radius:10px;box-shadow:var(--shadow);transition:transform .25s;z-index:100;max-width:calc(100% - 32px);font-size:.92rem}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.chk{width:18px;height:18px}
+.mobile-nav{display:none}
+@media (max-width:860px){
+  .app{grid-template-columns:1fr}
+  .side{display:none}
+  .mobile-nav{display:block;padding:12px 16px 0}
+  .main{padding:16px}
+}
+</style>
+</head>
+<body>
+
+<div class="demobar">
+  <div class="wrap">
+    <span class="tag">DEMO</span>
+    <span>Test data only. No real member data.</span>
+    <div class="tabs" role="group" aria-label="Demo area">
+      <button class="tab" data-area="site">Public website</button>
+      <button class="tab" data-area="portal">Member portal</button>
+      <button class="tab" data-area="admin">Admin console</button>
+    </div>
+    <button class="tab themebtn" id="themeBtn" aria-label="Toggle colour theme">Theme</button>
+  </div>
+</div>
+
+<div id="root"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ---------- Test data (fictional) ---------- */
+const DATA = {
+  events: [
+    {id:"season-2027", name:"Season 2027 Registration", cat:"Season", closes:"28 Feb 2027", status:"Open", regos:498, players:593, cap:720, fee:"from $295", blurb:"Miniroos (U5 to U12) and Juniors (U13 to U18). Returning players register here. Sibling discounts apply."},
+    {id:"ypl-eoi-2027", name:"EOI 2027: YPL Teams", cat:"EOI", closes:"22 Jan 2027", status:"Open", regos:649, players:681, cap:null, fee:"No fee", blurb:"Expressions of interest for U13 to U18 Youth Premier League squads. Trials by invitation only."},
+    {id:"community-eoi-2027", name:"EOI 2027: Community Teams", cat:"EOI", closes:"30 Mar 2027", status:"Open", regos:479, players:550, cap:null, fee:"No fee", blurb:"New players only. Tryouts are invite only due to high retention."},
+    {id:"summer-clinic", name:"Summer Holiday Clinic", cat:"Clinic", closes:"10 Jan 2027", status:"Open", regos:41, players:52, cap:80, fee:"$120", blurb:"Three-day skills clinic for ages 6 to 12, run by club technical staff."},
+    {id:"seniors-reserves", name:"EOI 2027: Senior Men's Reserves", cat:"EOI", closes:"26 Nov 2026", status:"Closing soon", regos:38, players:38, cap:null, fee:"No fee", blurb:"Pathway for younger players into senior football."}
+  ],
+  news: [
+    {t:"Season 2027 registrations now open", d:"12 Nov 2026", tag:"Club", x:"Returning families have received their invite link. New players should submit a Community EOI first."},
+    {t:"Breaking Barriers: Episode 4 released", d:"8 Nov 2026", tag:"Seniors", x:"The documentary series continues with behind-the-scenes footage from the senior squad."},
+    {t:"Coaches and team managers wanted", d:"3 Nov 2026", tag:"Volunteers", x:"Every team needs a coach and a manager. Coaches receive a fee discount and full club support."}
+  ],
+  fixtures: [
+    {date:"Sat 21 Nov", time:"9:00am", grp:"U9 Miniroos", home:"Berwick City U9 Eagles", away:"Casey Comets U9 Bilbies", venue:"Jack Thomas Reserve, Pitch 1"},
+    {date:"Sat 21 Nov", time:"10:15am", grp:"U12 Miniroos", home:"Dandenong Thunder U12", away:"Berwick City U12 Wallabies", venue:"George Andrews Reserve"},
+    {date:"Sun 22 Nov", time:"9:00am", grp:"U14 Juniors", home:"Berwick City U14 A", away:"Elwood City U14", venue:"Sweeney Reserve, Pitch 3"},
+    {date:"Sun 22 Nov", time:"11:00am", grp:"U16 YPL", home:"Berwick City U16 YPL", away:"Bentleigh Greens U16", venue:"Jack Thomas Reserve, Pitch 2"},
+    {date:"Sun 22 Nov", time:"3:00pm", grp:"Senior Women", home:"Berwick City Women", away:"Doveton SC Women", venue:"Jack Thomas Reserve, Pitch 1"}
+  ],
+  sponsors: {"Major Sponsor":["Major Partner"],"Gold Sponsors":["Gold Partner A","Gold Partner B","Gold Partner C","Gold Partner D"],"Production Partner":["Media Partner"],"Berwick Business Buddies":["Local Cafe","Physio Clinic","Plumbing Co","Real Estate","Accountants","Bakery"]},
+  regos: [
+    {fam:"Nguyen family", players:"2 players", grp:"U10, U13", inv:590, paid:590, status:"Active", pay:"Paid"},
+    {fam:"Taylor family", players:"1 player", grp:"U15", inv:345, paid:100, status:"Active", pay:"Payment plan"},
+    {fam:"Okafor family", players:"3 players", grp:"U8, U11, U14", inv:860, paid:0, status:"Incomplete", pay:"Owing"},
+    {fam:"Rossi family", players:"1 player", grp:"U16 YPL", inv:1450, paid:725, status:"Modified", pay:"Part paid"},
+    {fam:"Singh family", players:"2 players", grp:"U7, U9", inv:520, paid:520, status:"Active", pay:"Paid"},
+    {fam:"Murphy family", players:"1 player", grp:"U12", inv:295, paid:295, status:"Active", pay:"Paid"},
+    {fam:"Haddad family", players:"1 player", grp:"U18", inv:345, paid:0, status:"Active", pay:"Owing"},
+    {fam:"Chen family", players:"2 players", grp:"U11, U14", inv:640, paid:320, status:"Active", pay:"Payment plan"}
+  ],
+  pipeline: {
+    "EOI received":["Player A (U14)","Player B (U15)","Player C (U13)","Player D (U16)"],
+    "Invited to trial":["Player E (U14)","Player F (U18)","Player G (U13)"],
+    "Trialled":["Player H (U15)","Player I (U16)"],
+    "Offered":["Player J (U14)","Player K (U13)"],
+    "Accepted":["Player L (U16)","Player M (U15)"],
+    "Unsuccessful":["Player N (U18)"]
+  },
+  people: [
+    {name:"Coach 01",role:"Head coach, U12 Wallabies",wwcc:"Valid",exp:"Mar 2029"},
+    {name:"Coach 02",role:"Head coach, U14 A",wwcc:"Expiring",exp:"Dec 2026"},
+    {name:"Manager 03",role:"Team manager, U9 Eagles",wwcc:"Valid",exp:"Aug 2030"},
+    {name:"Coach 04",role:"Assistant coach, U16 YPL",wwcc:"Missing",exp:"-"},
+    {name:"Manager 05",role:"Team manager, Senior Women",wwcc:"Valid",exp:"Jan 2028"}
+  ],
+  audit: [
+    {t:"14 Nov 10:42",who:"Treasurer",a:"Approved payment plan",obj:"Plan #PP-0193"},
+    {t:"14 Nov 10:15",who:"Registrar",a:"Exported registrations (CSV)",obj:"Season 2027"},
+    {t:"14 Nov 09:58",who:"Secretary",a:"Changed role access",obj:"Content editor: added Events"},
+    {t:"13 Nov 21:03",who:"Coach 02",a:"Viewed guardian contacts",obj:"U14 A"},
+    {t:"13 Nov 19:40",who:"System",a:"Blocked team access (WWCC missing)",obj:"Coach 04"}
+  ]
+};
+
+/* ---------- Helpers ---------- */
+const $ = s => document.querySelector(s);
+const money = n => "$" + n.toLocaleString("en-AU");
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove("show"),2600)}
+function pill(s){const m={Active:"ok",Paid:"ok",Valid:"ok",Open:"ok",Accepted:"ok","Payment plan":"info",Modified:"warn",Incomplete:"warn","Part paid":"warn",Expiring:"warn","Closing soon":"warn",Owing:"red",Missing:"red",Unsuccessful:"red"};return `<span class="pill ${m[s]||""}">${esc(s)}</span>`}
+function go(hash){location.hash=hash}
+
+/* ---------- Registration wizard state ---------- */
+const wiz = {step:0, players:[{first:"Sam",dob:"2016-05-12",grp:"U10 Miniroos"},{first:"Alex",dob:"2013-09-03",grp:"U13 Juniors"}], pay:"card", agreed:false};
+const FEES = {"U6 Miniroos":180,"U8 Miniroos":250,"U10 Miniroos":295,"U12 Miniroos":295,"U13 Juniors":345,"U15 Juniors":345,"U18 Juniors":345};
+function feeLines(){
+  const lines = wiz.players.map((p,i)=>({label:`${p.first||"Player "+(i+1)}: ${p.grp} registration`, amt:FEES[p.grp]||295}));
+  const kit = wiz.players.length*45;
+  lines.push({label:`Playing kit (${wiz.players.length} x $45)`, amt:kit});
+  if(wiz.players.length>1){
+    const sorted=[...wiz.players].map(p=>FEES[p.grp]||295).sort((a,b)=>a-b);
+    const disc=sorted.slice(0,wiz.players.length-1).reduce((a,b)=>a+Math.round(b*0.1),0);
+    lines.push({label:"Sibling discount (10% on second and later players)", amt:-disc});
+  }
+  return lines;
+}
+
+/* ---------- Public site ---------- */
+function siteShell(page, body){
+  const nav=[["home","Home"],["whats-on","What's On"],["fixtures","Fixtures"],["teams","Programs"],["sponsors","Sponsors"],["contact","Contact"]];
+  return `
+  <header class="site-head">
+    <div class="wrap">
+      <span class="crest" aria-hidden="true">BCSC</span>
+      <a class="brandname" href="#site/home">Berwick City<br>Soccer Club</a>
+      <button class="menu-toggle" onclick="document.querySelector('.nav').classList.toggle('open')" aria-label="Open menu">Menu</button>
+      <nav class="nav" aria-label="Main">
+        ${nav.map(([k,l])=>`<a href="#site/${k}" ${page===k?'aria-current="page"':""}>${l}</a>`).join("")}
+        <a href="#portal/home">Sign in</a>
+      </nav>
+    </div>
+  </header>
+  <div class="status-strip"><div class="wrap">
+    <span><span class="dot"></span>Jack Thomas Reserve: open</span>
+    <span><span class="dot"></span>Sweeney Reserve: open</span>
+    <span class="muted" style="color:#9aa0a6">Updated 7:10am today</span>
+  </div></div>
+  <main>${body}</main>
+  <footer class="site-foot"><div class="wrap grid g3">
+    <div><b style="color:#fff">Berwick City Soccer Club</b><br>Founded 1974. Jack Thomas Reserve, Narre Warren North and Sweeney Reserve, Berwick.</div>
+    <div><b style="color:#fff">Club</b><br><a href="#site/contact">Contact</a> · <a href="#site/home">Policies</a> · <a href="#site/home">Privacy notice</a></div>
+    <div><b style="color:#fff">Affiliations</b><br>Football Victoria · Football Australia · Good Sports</div>
+  </div></footer>`;
+}
+
+function siteHome(){
+  return siteShell("home", `
+  <section class="hero"><div class="wrap">
+    <span class="pill red" style="background:rgba(255,255,255,.15);color:#fff">Season 2027 registrations open</span>
+    <h1 style="margin-top:12px">Football for every age and ability since 1974</h1>
+    <p>More than 700 players across 50 teams, from 4-year-old Miniroos to Over 35s. Run by volunteers, coached by qualified staff.</p>
+    <div class="row"><a class="btn btn-primary" href="#site/event/season-2027">Register for 2027</a><a class="btn" style="background:rgba(255,255,255,.12);color:#fff" href="#site/whats-on">See all events</a></div>
+    <div class="stats"><div class="stat"><b>730+</b>players</div><div class="stat"><b>50+</b>teams</div><div class="stat"><b>52</b>years</div></div>
+  </div></section>
+
+  <section class="section"><div class="wrap grid g-main">
+    <div>
+      <div class="section-head"><h2>Latest news</h2><a href="#site/home" class="small">All news</a></div>
+      <div class="grid g3">${DATA.news.map(n=>`
+        <article class="card"><div class="news-img">${esc(n.tag)}</div>
+          <span class="pill">${esc(n.d)}</span><h3 style="margin-top:8px">${esc(n.t)}</h3><p class="muted small">${esc(n.x)}</p></article>`).join("")}
+      </div>
+    </div>
+    <aside class="card">
+      <h3>This weekend</h3>
+      ${DATA.fixtures.slice(0,4).map(f=>`<div class="fixture" style="grid-template-columns:70px 1fr"><div class="fx-date">${f.date}<br>${f.time}</div><div class="small"><b>${esc(f.home)}</b><br>v ${esc(f.away)}</div></div>`).join("")}
+      <a class="btn btn-ghost btn-sm" href="#site/fixtures" style="margin-top:8px">All fixtures</a>
+    </aside>
+  </div></section>
+
+  <section class="section" style="background:var(--surface);border-top:1px solid var(--line);border-bottom:1px solid var(--line)"><div class="wrap">
+    <div class="section-head"><h2>What's on</h2><a href="#site/whats-on" class="small">All events</a></div>
+    <div class="grid g3">${DATA.events.slice(0,3).map(eventCard).join("")}</div>
+  </div></section>
+
+  <section class="section"><div class="wrap">
+    <div class="section-head"><h2>Our partners</h2><a href="#site/sponsors" class="small">Business directory</a></div>
+    <div class="sponsor-logos">${Object.values(DATA.sponsors).flat().slice(0,8).map(s=>`<div class="logo-box">${esc(s)}</div>`).join("")}</div>
+  </div></section>`);
+}
+
+function eventCard(e){
+  return `<article class="card event-card">
+    <div class="meta">${pill(e.status)}<span class="pill">${esc(e.cat)}</span></div>
+    <h3>${esc(e.name)}</h3><p class="muted small" style="margin:0">${esc(e.blurb)}</p>
+    <div class="small"><b>Closes:</b> ${esc(e.closes)} · <b>Fee:</b> ${esc(e.fee)}</div>
+    <a class="btn btn-primary btn-sm" style="align-self:flex-start;margin-top:6px" href="#site/event/${e.id}">More info and register</a>
+  </article>`;
+}
+
+function siteWhatsOn(){
+  return siteShell("whats-on", `<section class="section"><div class="wrap">
+    <h1>What's on</h1><p class="muted">Registrations, expressions of interest, clinics and club functions.</p>
+    <div class="grid g3">${DATA.events.map(eventCard).join("")}</div></div></section>`);
+}
+
+function siteEvent(id){
+  const e=DATA.events.find(x=>x.id===id)||DATA.events[0];
+  return siteShell("whats-on", `<section class="section"><div class="wrap grid g-main">
+    <div>
+      <a href="#site/whats-on" class="small">Back to What's On</a>
+      <h1 style="margin-top:8px">${esc(e.name)}</h1>
+      <div class="row" style="margin-bottom:16px">${pill(e.status)}<span class="pill">${esc(e.cat)}</span><span class="pill">Closes ${esc(e.closes)}</span></div>
+      <p>${esc(e.blurb)}</p>
+      <h3>Before you register</h3>
+      <ul><li>Players must also register in PlayFootball. We send you the link after payment.</li><li>Payment by card, Apple Pay, Google Pay or a fortnightly payment plan.</li><li>Read the Code of Conduct and Child Safety Policy.</li></ul>
+      <h3>Fees</h3>
+      <div class="table-wrap"><table><thead><tr><th>Playing group</th><th>Fee</th><th>Deposit</th></tr></thead><tbody>
+        <tr><td>U6 to U7 Miniroos</td><td>$180</td><td>$50</td></tr><tr><td>U8 to U9 Miniroos</td><td>$250</td><td>$50</td></tr>
+        <tr><td>U10 to U12 Miniroos</td><td>$295</td><td>$100</td></tr><tr><td>U13 to U18 Juniors</td><td>$345</td><td>$100</td></tr>
+      </tbody></table></div>
+      <p class="small muted" style="margin-top:8px">10% sibling discount on the second and later players. Switchover fees apply if a player moves playing group after grading.</p>
+    </div>
+    <aside class="card" style="align-self:start">
+      <h3>Register now</h3>
+      <p class="small muted">Returning families: use the link in your invite email to skip the sign-in step.</p>
+      ${e.cap?`<div class="small"><b>${e.players}</b> of ${e.cap} places taken</div><div class="bar" style="margin:6px 0 14px"><span style="width:${Math.round(e.players/e.cap*100)}%"></span></div>`:""}
+      <a class="btn btn-primary" href="#site/register/${e.id}">Start registration</a>
+    </aside>
+  </div></section>`);
+}
+
+function siteRegister(id){
+  const e=DATA.events.find(x=>x.id===id)||DATA.events[0];
+  const steps=["Family","Players","Details","Review fees","Payment","Done"];
+  let body="";
+  if(wiz.step===0) body=`
+    <h2>Family details</h2><p class="muted small">One registration covers the whole family. Two adult contacts are required.</p>
+    <div class="grid g2"><div class="field"><label for="g1">Guardian 1 name</label><input id="g1" type="text" value="Jordan Example"></div>
+    <div class="field"><label for="g1e">Email</label><input id="g1e" type="email" value="jordan@example.com"></div>
+    <div class="field"><label for="g2">Guardian 2 name</label><input id="g2" type="text" value="Casey Example"></div>
+    <div class="field"><label for="g2m">Mobile</label><input id="g2m" type="tel" value="0400 000 000"></div></div>
+    <div class="field"><label for="extra">Extra email for club notices (optional, one-way only)</label><input id="extra" type="email" placeholder="For split families"></div>`;
+  if(wiz.step===1) body=`
+    <h2>Players</h2><p class="muted small">Add everyone in the family who will play.</p>
+    ${wiz.players.map((p,i)=>`<div class="card" style="margin-bottom:12px;box-shadow:none"><div class="grid g3">
+      <div class="field"><label>First name</label><input type="text" value="${esc(p.first)}" oninput="wiz.players[${i}].first=this.value"></div>
+      <div class="field"><label>Date of birth</label><input type="date" value="${p.dob}" oninput="wiz.players[${i}].dob=this.value"></div>
+      <div class="field"><label>Playing group</label><select onchange="wiz.players[${i}].grp=this.value">${Object.keys(FEES).map(g=>`<option ${g===p.grp?"selected":""}>${g}</option>`).join("")}</select></div>
+    </div>${wiz.players.length>1?`<button class="btn btn-ghost btn-sm" onclick="wiz.players.splice(${i},1);render()">Remove</button>`:""}</div>`).join("")}
+    <button class="btn btn-ghost" onclick="wiz.players.push({first:'',dob:'2018-01-01',grp:'U8 Miniroos'});render()">+ Add another player</button>`;
+  if(wiz.step===2) body=`
+    <h2>Player details</h2><p class="muted small">Custom fields for this event, set up by the Registrar in the form builder.</p>
+    <div class="field"><label>Medical conditions or allergies (visible to team officials only)</label><textarea rows="2" placeholder="None"></textarea></div>
+    <div class="field"><label>Photo consent</label><select><option>Yes, team and action photos may be published</option><option>Team photo only</option><option>No photos published</option></select></div>
+    <div class="field"><label>Can a guardian help the team this season?</label>
+      <div class="grid g3 small">${["Coach","Team manager","Referee","Canteen","Ground setup","Committee"].map(r=>`<label class="check"><input type="checkbox"> ${r}</label>`).join("")}</div></div>
+    <div class="field"><label class="check"><input type="checkbox" checked> I have read the Code of Conduct (v2026.1)</label>
+    <label class="check"><input type="checkbox" checked> I have read the Child Safety Policy (v1.0)</label></div>`;
+  if(wiz.step===3){const l=feeLines(),tot=l.reduce((a,b)=>a+b.amt,0);body=`
+    <h2>Review fees</h2><p class="muted small">Calculated by the fee rules for this event.</p>
+    <div class="card" style="box-shadow:none">${l.map(x=>`<div class="sum-line"><span>${esc(x.label)}</span><span>${x.amt<0?"-"+money(-x.amt):money(x.amt)}</span></div>`).join("")}
+    <div class="sum-line sum-total"><span>Total (incl. GST)</span><span>${money(tot)}</span></div></div>
+    <p class="small muted" style="margin-top:10px">Have a Get Active Kids voucher? You can enter it on the next step.</p>`}
+  if(wiz.step===4){const tot=feeLines().reduce((a,b)=>a+b.amt,0);body=`
+    <h2>Payment</h2>
+    <div class="grid g2">
+      <label class="paybox"><input type="radio" name="pay" ${wiz.pay==="card"?"checked":""} onchange="wiz.pay='card';render()"> <b>Pay in full now</b><br><span class="small muted">Card, Apple Pay or Google Pay. ${money(tot)} today.</span></label>
+      <label class="paybox"><input type="radio" name="pay" ${wiz.pay==="plan"?"checked":""} onchange="wiz.pay='plan';render()"> <b>Payment plan</b><br><span class="small muted">Deposit today, then fortnightly direct debit. Needs club approval.</span></label>
+    </div>
+    ${wiz.pay==="plan"?`<div class="card" style="box-shadow:none;margin-top:12px"><b>Plan preview</b><div class="sum-line"><span>Deposit today</span><span>$200</span></div><div class="sum-line"><span>6 fortnightly debits</span><span>${money(Math.round((tot-200)/6))} each</span></div><p class="small muted" style="margin:0">Final payment by 30 April 2027.</p></div>`:""}
+    <div class="field" style="margin-top:14px"><label for="voucher">Voucher code (optional)</label><input id="voucher" type="text" placeholder="e.g. GAK-XXXX"></div>
+    <label class="check"><input type="checkbox" ${wiz.agreed?"checked":""} onchange="wiz.agreed=this.checked"> I accept the club Terms and Conditions. We record the date, time and browser of your acceptance.</label>
+    <p class="small muted" style="margin-top:12px">Card details are entered on the payment provider's secure page. The club never sees or stores card numbers.</p>`}
+  if(wiz.step===5) body=`
+    <div style="text-align:center;padding:20px 0"><div style="font-size:3rem">✓</div><h2>Registration complete</h2>
+    <p>Invoice INV-2027-0512 has been emailed to jordan@example.com.</p>
+    <div class="card" style="text-align:left;box-shadow:none;max-width:520px;margin:16px auto"><b>Next step: PlayFootball</b><p class="small" style="margin:6px 0 0">Football Australia requires each player to register in PlayFootball. The club will remind you if this is not done within 14 days.</p></div>
+    <div class="row" style="justify-content:center"><a class="btn btn-primary" href="#portal/home">Go to my family account</a><a class="btn" href="#site/shop">Add club merchandise</a></div></div>`;
+  const nav = wiz.step<5?`<div class="row" style="margin-top:20px;justify-content:space-between">
+      ${wiz.step>0?`<button class="btn btn-ghost" onclick="wiz.step--;render()">Back</button>`:"<span></span>"}
+      <button class="btn btn-primary" onclick="wizNext()">${wiz.step===4?(wiz.pay==="plan"?"Pay deposit and apply":"Pay now"):"Continue"}</button></div>`:"";
+  return siteShell("whats-on", `<section class="section"><div class="wrap" style="max-width:820px">
+    <a href="#site/event/${e.id}" class="small">${esc(e.name)}</a><h1 style="font-size:1.8rem;margin-top:6px">Registration</h1>
+    <div class="steps">${steps.map((s,i)=>`<div class="step ${i<wiz.step?"done":i===wiz.step?"active":""}">${i+1}. ${s}</div>`).join("")}</div>
+    <div class="card">${body}${nav}</div></div></section>`);
+}
+function wizNext(){ if(wiz.step===4 && !wiz.agreed){toast("Please accept the Terms and Conditions.");return} wiz.step++; render(); window.scrollTo(0,0) }
+
+function siteFixtures(){
+  const grps=["All",...new Set(DATA.fixtures.map(f=>f.grp))];
+  const sel=siteFixtures.sel||"All";
+  const list=DATA.fixtures.filter(f=>sel==="All"||f.grp===sel);
+  return siteShell("fixtures", `<section class="section"><div class="wrap">
+    <h1>Fixtures and results</h1><p class="muted">Imported automatically from the Football Victoria competition system. No manual re-keying.</p>
+    <div class="row" style="margin-bottom:16px">${grps.map(g=>`<button class="btn btn-sm ${g===sel?"btn-primary":"btn-ghost"}" onclick="siteFixtures.sel='${g}';render()">${g}</button>`).join("")}</div>
+    <div class="card">${list.map(f=>`<div class="fixture"><div class="fx-date">${f.date}<br>${f.time}</div><div><b>${esc(f.home)}</b> v ${esc(f.away)}<div class="small muted">${esc(f.venue)}</div></div><span class="pill">${esc(f.grp)}</span></div>`).join("")}</div>
+    <h2 style="margin-top:32px">Training allocations</h2>
+    <div class="table-wrap"><table><thead><tr><th>Day</th><th>Time</th><th>Jack Thomas Pitch 1</th><th>Jack Thomas Pitch 2</th><th>Sweeney Pitch 3</th></tr></thead><tbody>
+      <tr><td>Monday</td><td>5:30pm</td><td>U9 Eagles, U10 Bears</td><td>U12 Wallabies</td><td>U8 Tigers</td></tr>
+      <tr><td>Monday</td><td>7:00pm</td><td>Senior Men</td><td>Senior Men Reserves</td><td>-</td></tr>
+      <tr><td>Tuesday</td><td>5:30pm</td><td>U14 A</td><td>U13 Girls</td><td>U15 B</td></tr>
+      <tr><td>Thursday</td><td>7:00pm</td><td>Senior Women</td><td>U16 YPL</td><td>U18 YPL</td></tr>
+    </tbody></table></div></div></section>`);
+}
+
+function siteTeams(){
+  const progs=[["Miniroos","Ages 5 to 12","Fun-first football in small-sided games. Graded Kangaroo, Wallaby and Joey teams. Saturday matches."],["Juniors","U13 to U18","Graded A, B and C teams, boys and girls separate. Sunday matches."],["Girls Only","U8 to U18","Dedicated girls' teams with Tuesday and Thursday training."],["Youth Premier League","U13 to U18","Elite pathway. Trials by invitation after an EOI."],["Seniors","Men and Women","State league squads and reserves pathway."],["Development Academy","Ages 6 to 12","Term-based skills program run by technical staff."]];
+  return siteShell("teams", `<section class="section"><div class="wrap"><h1>Programs</h1><p class="muted">Every program page is edited by the club in the CMS.</p>
+  <div class="grid g3">${progs.map(p=>`<article class="card"><span class="pill red">${p[1]}</span><h3 style="margin-top:10px">${p[0]}</h3><p class="muted small">${p[2]}</p><a class="small" href="#site/whats-on">Register interest</a></article>`).join("")}</div></div></section>`);
+}
+
+function siteSponsors(){
+  return siteShell("sponsors", `<section class="section"><div class="wrap"><h1>Business directory</h1><p class="muted">Support the local businesses that support our club. Replaces the separate Canva directory.</p>
+  ${Object.entries(DATA.sponsors).map(([tier,list])=>`<div class="sponsor-tier"><h3>${tier}</h3><div class="sponsor-logos">${list.map(s=>`<div class="logo-box">${esc(s)}</div>`).join("")}</div></div>`).join("")}</div></section>`);
+}
+
+function siteContact(){
+  return siteShell("contact", `<section class="section"><div class="wrap grid g-main">
+    <div><h1>Contact us</h1><p class="muted">Messages go to the right committee role mailbox automatically.</p>
+    <div class="card"><div class="field"><label for="ct">Topic</label><select id="ct"><option>Registrations</option><option>Fees and payments</option><option>Coaching and teams</option><option>Sponsorship</option><option>Child safety (confidential)</option><option>Other</option></select></div>
+    <div class="field"><label for="cn">Your name</label><input id="cn" type="text"></div>
+    <div class="field"><label for="ce">Email</label><input id="ce" type="email"></div>
+    <div class="field"><label for="cm">Message</label><textarea id="cm" rows="4"></textarea></div>
+    <p class="small muted">Protected by bot detection. See our privacy collection notice.</p>
+    <button class="btn btn-primary" onclick="toast('Demo only: message not sent.')">Send message</button></div></div>
+    <div><h3>Our grounds</h3>
+      <div class="card" style="margin-bottom:12px"><b>Jack Thomas Reserve</b><br><span class="muted small">Fox Road, Narre Warren North VIC 3804</span><div class="small" style="margin-top:6px"><span class="dot"></span>Open</div></div>
+      <div class="card"><b>Sweeney Reserve</b><br><span class="muted small">Dempster Way and Melzak Way, Berwick VIC 3806</span><div class="small" style="margin-top:6px"><span class="dot"></span>Open</div></div>
+    </div></div></section>`);
+}
+
+function siteShop(){
+  const items=[["2027 Beanie","$30","Blue, Black"],["2027 Scarf","$30","One size"],["Training Top","$55","Youth and adult sizes"],["Breaking Barriers Membership","$10","Supporter membership"]];
+  return siteShell("home", `<section class="section"><div class="wrap"><h1>Club shop</h1>
+  <div class="grid g4">${items.map(i=>`<article class="card"><div class="news-img" style="height:110px">Kit</div><h3>${i[0]}</h3><p class="muted small">${i[2]}</p><div class="row"><b class="grow">${i[1]}</b><button class="btn btn-primary btn-sm" onclick="toast('Demo only: added to cart.')">Add</button></div></article>`).join("")}</div></div></section>`);
+}
+
+/* ---------- Member portal ---------- */
+function appShell(area, page, items, who, body){
+  const links=items.map(it=> it.grp?`<div class="grp">${it.grp}</div>`:`<a href="#${area}/${it.k}" ${page===it.k?'aria-current="page"':""}>${it.l}${it.c?`<span class="count">${it.c}</span>`:""}</a>`).join("");
+  const mobile=`<div class="mobile-nav"><label for="mnav" class="small">Section</label><select id="mnav" onchange="go('${area}/'+this.value)">${items.filter(i=>!i.grp).map(i=>`<option value="${i.k}" ${page===i.k?"selected":""}>${i.l}</option>`).join("")}</select></div>`;
+  return `<div class="app"><aside class="side" aria-label="${area} navigation"><div class="who"><span class="avatar">${who.i}</span><div><b style="color:#fff">${who.n}</b><div class="small" style="color:#8a9097">${who.r}</div></div></div>${links}
+  <div class="grp">Demo</div><a href="#site/home">View public site</a></aside>
+  <div>${mobile}<main class="main">${body}</main></div></div>`;
+}
+
+const PORTAL_NAV=[{k:"home",l:"Overview"},{k:"family",l:"My family"},{k:"registrations",l:"Registrations"},{k:"payments",l:"Invoices and payments"},{k:"schedule",l:"Team schedule"},{k:"settings",l:"Sign-in and privacy"}];
+function portal(page){
+  const who={i:"JE",n:"Jordan Example",r:"Guardian"};
+  let b="";
+  if(page==="home") b=`
+    <div class="page-head"><div><h2>Welcome back, Jordan</h2><p class="muted">Example family · 2 players</p></div><a class="btn btn-primary" href="#site/whats-on">Register for an event</a></div>
+    <div class="grid g3">
+      <div class="card kpi"><div class="l">Balance owing</div><div class="n">$412</div><div class="d muted">Payment plan: next debit $69 on 28 Nov</div></div>
+      <div class="card kpi"><div class="l">Season 2027</div><div class="n">Active</div><div class="d">${pill("Payment plan")}</div></div>
+      <div class="card kpi"><div class="l">PlayFootball</div><div class="n">1 of 2</div><div class="d"><span class="pill warn">Alex not registered yet</span></div></div>
+    </div>
+    <div class="grid g2" style="margin-top:16px">
+      <div class="card"><h3>Coming up</h3>
+        <div class="list-item"><span class="pill">Mon 5:30pm</span><span class="grow">Sam, U10 Bears training · Jack Thomas Pitch 1</span><button class="btn btn-sm" onclick="toast('Demo only: RSVP saved.')">Attending</button></div>
+        <div class="list-item"><span class="pill">Sat 9:00am</span><span class="grow">Sam v Casey Comets · Away</span><button class="btn btn-sm" onclick="toast('Demo only: RSVP saved.')">Attending</button></div>
+        <div class="list-item"><span class="pill">Sun 9:00am</span><span class="grow">Alex, U13 Juniors v Elwood City · Home</span><button class="btn btn-sm" onclick="toast('Demo only: RSVP saved.')">Attending</button></div></div>
+      <div class="card"><h3>Club messages</h3>
+        <div class="list-item"><span class="pill info">Team</span><span class="grow small">U10 Bears: bring water bottles, hot weather Saturday.</span></div>
+        <div class="list-item"><span class="pill">Club</span><span class="grow small">Season 2027 kit pick-up dates announced.</span></div>
+        <div class="list-item"><span class="pill red">Action</span><span class="grow small">Please complete PlayFootball registration for Alex.</span></div></div>
+    </div>`;
+  if(page==="family") b=`<h2>My family</h2><div class="grid g2">
+    <div class="card"><h3>Guardians</h3><div class="list-item"><span class="grow"><b>Jordan Example</b><br><span class="small muted">jordan@example.com · Primary contact</span></span></div><div class="list-item"><span class="grow"><b>Casey Example</b><br><span class="small muted">0400 000 000</span></span></div><button class="btn btn-ghost btn-sm" style="margin-top:8px">Edit</button></div>
+    <div class="card"><h3>Players</h3>${wiz.players.map(p=>`<div class="list-item"><span class="avatar" style="width:30px;height:30px;border-radius:50%;background:var(--brand);color:#fff;display:grid;place-items:center;font-size:.75rem;font-weight:800">${esc((p.first||"P")[0])}</span><span class="grow"><b>${esc(p.first||"Player")}</b><br><span class="small muted">${esc(p.grp)} · Photo consent: team photos</span></span></div>`).join("")}</div></div>`;
+  if(page==="registrations") b=`<h2>Registrations</h2><div class="table-wrap"><table><thead><tr><th>Event</th><th>Players</th><th>Status</th><th>Invoice</th></tr></thead><tbody>
+    <tr><td>Season 2027 Registration</td><td>Sam, Alex</td><td>${pill("Active")}</td><td>INV-2027-0512</td></tr>
+    <tr><td>Summer Holiday Clinic</td><td>Sam</td><td>${pill("Paid")}</td><td>INV-2026-1188</td></tr>
+    <tr><td>Season 2026 Registration</td><td>Sam, Alex</td><td><span class="pill">Completed</span></td><td>INV-2026-0331</td></tr></tbody></table></div>`;
+  if(page==="payments") b=`<h2>Invoices and payments</h2>
+    <div class="card" style="margin-bottom:16px"><h3>Payment plan PP-0193</h3><div class="row small"><span>Plan amount <b>$614</b></span><span>Repaid <b>$202</b></span><span>Outstanding <b>$412</b></span><span>Final debit <b>30 Apr 2027</b></span></div><div class="bar" style="margin-top:10px"><span style="width:33%"></span></div></div>
+    <div class="table-wrap"><table><thead><tr><th>Date</th><th>Description</th><th>Amount</th><th></th></tr></thead><tbody>
+    <tr><td>14 Nov 2026</td><td>Deposit, Season 2027</td><td>$200.00</td><td><button class="btn btn-sm" onclick="toast('Demo only: receipt PDF.')">Receipt</button></td></tr>
+    <tr><td>28 Nov 2026</td><td>Direct debit 1 of 6 (scheduled)</td><td>$69.00</td><td><span class="pill info">Scheduled</span></td></tr>
+    <tr><td>2 Oct 2026</td><td>Summer Holiday Clinic</td><td>$120.00</td><td><button class="btn btn-sm" onclick="toast('Demo only: receipt PDF.')">Receipt</button></td></tr></tbody></table></div>`;
+  if(page==="schedule") b=`<h2>Team schedule</h2><p class="muted">Sam · U10 Bears. Coach and manager contact through the club messaging system.</p>
+    <div class="card">${["Mon 23 Nov · 5:30pm · Training · Jack Thomas Pitch 1","Wed 25 Nov · 5:30pm · Training · Jack Thomas Pitch 1","Sat 28 Nov · 9:00am · v Casey Comets · Comets Stadium","Sat 5 Dec · 9:00am · v Dandenong Thunder · Home"].map(x=>`<div class="list-item"><span class="grow">${x}</span><button class="btn btn-sm" onclick="toast('Demo only: RSVP saved.')">Yes</button><button class="btn btn-sm btn-ghost" onclick="toast('Demo only: RSVP saved.')">No</button></div>`).join("")}</div>`;
+  if(page==="settings") b=`<h2>Sign-in and privacy</h2><div class="grid g2">
+    <div class="card"><h3>Sign-in methods</h3><div class="list-item"><span class="grow">Email code<br><span class="small muted">jordan@example.com</span></span>${pill("Active")}</div><div class="list-item"><span class="grow">Passkey<br><span class="small muted">Use your phone or laptop to sign in without a code</span></span><button class="btn btn-sm" onclick="toast('Demo only: passkey set-up.')">Add passkey</button></div></div>
+    <div class="card"><h3>Communication preferences</h3><label class="check"><input type="checkbox" checked disabled> Essential notices (fees, team changes, safety). Cannot be turned off.</label><label class="check"><input type="checkbox" checked> Club news</label><label class="check"><input type="checkbox"> Sponsor offers</label><label class="check"><input type="checkbox" checked> SMS for wet weather and urgent changes</label>
+    <p class="small muted" style="margin-top:12px">You can request a copy of the data we hold about your family.</p></div></div>`;
+  return appShell("portal", page, PORTAL_NAV, who, b);
+}
+
+/* ---------- Admin console ---------- */
+const ADMIN_NAV=[{grp:"Overview"},{k:"dashboard",l:"Dashboard"},{grp:"Events"},{k:"events",l:"Events"},{k:"intake",l:"Intake pipeline"},{k:"registrations",l:"Registrations",c:"4"},{k:"teams",l:"Teams"},{grp:"People"},{k:"people",l:"People and WWCC",c:"2"},{k:"comms",l:"Communications"},{grp:"Finance"},{k:"finance",l:"Finance"},{grp:"Website"},{k:"content",l:"Content"},{grp:"Administration"},{k:"access",l:"Access and roles"},{k:"audit",l:"Audit log"}];
+function admin(page){
+  const who={i:"SC",n:"Secretary",r:"Committee 2026 · MFA on"};
+  let b="";
+  if(page==="dashboard") b=`
+    <div class="page-head"><div><h2>Control room</h2><p class="muted">Season 2027 intake · Friday 14 November</p></div><div class="row"><a class="btn btn-ghost" href="#admin/comms">Email all</a><button class="btn btn-primary" onclick="toast('Demo only: new event wizard.')">New event</button></div></div>
+    <div class="grid g4">
+      <div class="card kpi"><div class="l">Season 2027 registrations</div><div class="n">498</div><div class="d"><span class="pill ok">+37 this week</span></div></div>
+      <div class="card kpi"><div class="l">Players registered</div><div class="n">593</div><div class="d muted">82% of 720 places</div></div>
+      <div class="card kpi"><div class="l">Fees owing</div><div class="n">$41.2k</div><div class="d muted">118 families</div></div>
+      <div class="card kpi"><div class="l">Not in PlayFootball</div><div class="n">64</div><div class="d"><a href="#admin/registrations" class="small">Send reminder</a></div></div>
+    </div>
+    <div class="grid g2" style="margin-top:16px">
+      <div class="card"><h3>Needs action</h3>
+        <div class="list-item"><span class="pill warn">3</span><span class="grow">Payment plans awaiting approval</span><a class="btn btn-sm" href="#admin/finance">Review</a></div>
+        <div class="list-item"><span class="pill warn">4</span><span class="grow">Modified registrations to approve</span><a class="btn btn-sm" href="#admin/registrations">Review</a></div>
+        <div class="list-item"><span class="pill red">1</span><span class="grow">Official blocked: WWCC missing</span><a class="btn btn-sm" href="#admin/people">Open</a></div>
+        <div class="list-item"><span class="pill warn">1</span><span class="grow">WWCC expiring within 60 days</span><a class="btn btn-sm" href="#admin/people">Open</a></div>
+        <div class="list-item"><span class="pill info">12</span><span class="grow">Offers expiring in 7 days</span><a class="btn btn-sm" href="#admin/intake">Open</a></div></div>
+      <div class="card"><h3>Registrations by playing group</h3>
+        ${[["Miniroos U5 to U7",86,110],["Miniroos U8 to U12",241,280],["Juniors U13 to U18",198,240],["Girls Only",44,60],["YPL",24,30]].map(r=>`<div style="margin:10px 0"><div class="row small"><span class="grow">${r[0]}</span><b>${r[1]}</b><span class="muted">/ ${r[2]}</span></div><div class="bar"><span style="width:${Math.round(r[1]/r[2]*100)}%"></span></div></div>`).join("")}</div>
+    </div>`;
+  if(page==="events") b=`<div class="page-head"><div><h2>Events</h2><p class="muted">One event engine for seasons, EOIs, clinics, academy terms, ticketed functions and photo orders.</p></div><button class="btn btn-primary" onclick="toast('Demo only: new event wizard.')">New event</button></div>
+    <div class="table-wrap"><table><thead><tr><th>Event</th><th>Category</th><th>Closes</th><th>Registrations</th><th>Players</th><th>Status</th><th></th></tr></thead><tbody>
+    ${DATA.events.map(e=>`<tr><td><b>${esc(e.name)}</b></td><td>${esc(e.cat)}</td><td>${esc(e.closes)}</td><td>${e.regos}</td><td>${e.players}</td><td>${pill(e.status)}</td><td><div class="row"><button class="btn btn-sm" onclick="toast('Demo only: event setup (form builder, fee rules, T&amp;Cs).')">Setup</button><a class="btn btn-sm btn-ghost" href="#site/event/${e.id}">View</a></div></td></tr>`).join("")}</tbody></table></div>
+    <div class="grid g3" style="margin-top:16px">
+      <div class="card"><h3>Form builder</h3><p class="small muted">Drag fields, add conditional logic, reuse field sets. No vendor request needed.</p></div>
+      <div class="card"><h3>Fee rules</h3><p class="small muted">Fee and deposit per playing group, sibling discount, switchover fees, early bird, vouchers.</p></div>
+      <div class="card"><h3>Publishing</h3><p class="small muted">Friendly URL, What's On listing, QR code, invite emails to past members.</p></div></div>`;
+  if(page==="intake"){
+    const lanes=Object.keys(DATA.pipeline);
+    b=`<div class="page-head"><div><h2>Intake pipeline: YPL 2027</h2><p class="muted">Configurable stages replace the old "teams as stages" workaround.</p></div><div class="row"><select style="width:auto"><option>EOI 2027: YPL Teams</option><option>EOI 2027: Community Teams</option></select><button class="btn btn-primary" onclick="toast('Demo only: offer letters queued.')">Send offer letters</button></div></div>
+    <div class="kanban">${lanes.map((l,li)=>`<div class="lane"><h4>${l}<span class="count" style="background:var(--surface);border-radius:999px;padding:0 8px">${DATA.pipeline[l].length}</span></h4>
+      ${DATA.pipeline[l].map((p,pi)=>`<div class="kcard"><b>${esc(p)}</b><div class="small muted">Assessment: ${["3.5","4.0","3.0","4.5"][pi%4]} / 5</div>
+      <div class="acts">${li>0?`<button class="btn btn-sm btn-ghost" onclick="moveCard('${l}',${pi},-1)" aria-label="Move back">←</button>`:""}${li<lanes.length-1?`<button class="btn btn-sm" onclick="moveCard('${l}',${pi},1)">Move →</button>`:""}</div></div>`).join("")}</div>`).join("")}</div>
+    <p class="small muted">Offers carry an expiry date. Accepted offers create a season registration with the agreed fee and team.</p>`}
+  if(page==="registrations"){
+    b=`<div class="page-head"><div><h2>Registrations: Season 2027</h2><p class="muted">498 registrations · filter by any form field</p></div><div class="row"><button class="btn btn-ghost" onclick="toast('Demo only: export requires the Export permission and is logged.')">Export CSV</button></div></div>
+    <div class="row" style="margin-bottom:12px"><input type="text" placeholder="Search family, player or email" style="max-width:320px"><select style="width:auto"><option>All statuses</option><option>Incomplete</option><option>Modified</option><option>Fees owing</option></select><select style="width:auto"><option>All playing groups</option><option>Miniroos</option><option>Juniors</option></select></div>
+    <div class="row" style="margin-bottom:12px" id="bulk"><span class="small muted" id="selcount">0 selected</span><button class="btn btn-sm" onclick="toast('Demo only: email composer opens for selected families.')">Email</button><button class="btn btn-sm" onclick="toast('Demo only: SMS composer.')">SMS</button><button class="btn btn-sm" onclick="toast('Demo only: debt reminder queued.')">Debt reminder</button><button class="btn btn-sm" onclick="toast('Demo only: approved.')">Approve changes</button></div>
+    <div class="table-wrap"><table><thead><tr><th><input type="checkbox" class="chk" aria-label="Select all" onchange="document.querySelectorAll('.rowchk').forEach(c=>c.checked=this.checked);updSel()"></th><th>Family</th><th>Players</th><th>Groups</th><th>Invoiced</th><th>Paid</th><th>Status</th><th>Payment</th></tr></thead><tbody>
+    ${DATA.regos.map(r=>`<tr><td><input type="checkbox" class="chk rowchk" onchange="updSel()" aria-label="Select ${esc(r.fam)}"></td><td><b>${esc(r.fam)}</b></td><td>${r.players}</td><td>${r.grp}</td><td>${money(r.inv)}</td><td>${money(r.paid)}</td><td>${pill(r.status)}</td><td>${pill(r.pay)}</td></tr>`).join("")}</tbody></table></div>`}
+  if(page==="teams") b=`<div class="page-head"><div><h2>Teams: Season 2027</h2><p class="muted">Allocate players with filters from the registration form and assessment data.</p></div><button class="btn btn-primary" onclick="toast('Demo only: team builder.')">Team builder</button></div>
+    <div class="grid g3">${[["U10 Bears","Miniroos",11,14,"Coach 01","Manager 03","ok"],["U14 A","Juniors",15,16,"Coach 02","Vacant","warn"],["U16 YPL","YPL",18,20,"Head coach","Coach 04","red"],["U9 Eagles","Miniroos",9,11,"Coach 06","Manager 03","ok"],["Senior Women","Seniors",21,25,"Coach 07","Manager 05","ok"],["U13 Girls","Girls Only",12,14,"Vacant","Vacant","warn"]].map(t=>`
+      <div class="card"><div class="row"><h3 class="grow" style="margin:0">${t[0]}</h3><span class="pill">${t[1]}</span></div>
+      <div class="small" style="margin:10px 0 4px">${t[2]} of ${t[3]} players</div><div class="bar"><span style="width:${Math.round(t[2]/t[3]*100)}%"></span></div>
+      <div class="small" style="margin-top:10px">Coach: <b>${t[4]}</b><br>Manager: <b>${t[5]}</b></div>
+      <div style="margin-top:8px">${t[6]==="ok"?pill("Valid"):t[6]==="warn"?'<span class="pill warn">Official needed</span>':'<span class="pill red">Official blocked: WWCC</span>'}</div></div>`).join("")}</div>`;
+  if(page==="people") b=`<div class="page-head"><div><h2>People and WWCC register</h2><p class="muted">Officials without a valid Working With Children Check lose team access automatically.</p></div><button class="btn btn-primary" onclick="toast('Demo only: add accreditation.')">Add accreditation</button></div>
+    <div class="table-wrap"><table><thead><tr><th>Official</th><th>Role</th><th>WWCC</th><th>Expiry</th><th>Team access</th><th></th></tr></thead><tbody>
+    ${DATA.people.map(p=>`<tr><td><b>${p.name}</b></td><td>${p.role}</td><td>${pill(p.wwcc)}</td><td>${p.exp}</td><td>${p.wwcc==="Missing"?'<span class="pill red">Blocked</span>':pill("Active")}</td><td><button class="btn btn-sm" onclick="toast('Demo only: reminder sent.')">Remind</button></td></tr>`).join("")}</tbody></table></div>
+    <p class="small muted" style="margin-top:10px">WWCC numbers are visible only to roles with the Safeguarding permission. Every view is recorded in the audit log.</p>`;
+  if(page==="comms") b=`<h2>Communications</h2><div class="grid g-main">
+    <div class="card"><div class="field"><label>Audience</label><div class="grid g3 small">${["All Season 2027 families","Miniroos","Juniors","Girls Only","YPL","Coaches","Team managers","Fees owing","Not in PlayFootball"].map((a,i)=>`<label class="check"><input type="checkbox" ${i===8?"checked":""}> ${a}</label>`).join("")}</div></div>
+    <div class="grid g2"><div class="field"><label>From</label><select><option>Registrar (registrar@)</option><option>Secretary (secretary@)</option><option>Treasurer (treasurer@)</option></select></div><div class="field"><label>Channel</label><select><option>Email</option><option>SMS</option><option>Email and SMS</option></select></div></div>
+    <div class="field"><label>Subject</label><input type="text" value="Action needed: PlayFootball registration"></div>
+    <div class="field"><label>Message</label><textarea rows="5">Hi {guardian_first_name},
+
+Our records show {player_first_name} is not yet registered in PlayFootball. Please complete this by 30 November so they can take part in matches.</textarea></div>
+    <div class="row"><span class="small muted grow">64 recipients · 3 excluded (Do Not Email)</span><button class="btn btn-ghost" onclick="toast('Demo only: test email sent to you.')">Send test</button><button class="btn btn-primary" onclick="toast('Demo only: message not sent.')">Send</button></div></div>
+    <div class="card"><h3>Recent messages</h3>${["Season 2027 invites (bulk)","Wet weather: all Saturday games off","Coaches meeting reminder","Kit pick-up dates"].map((m,i)=>`<div class="list-item small"><span class="grow">${m}</span><span class="muted">${["12 Nov","8 Nov","5 Nov","2 Nov"][i]}</span></div>`).join("")}</div></div>`;
+  if(page==="finance") b=`<div class="page-head"><div><h2>Finance</h2><p class="muted">Financial year starts October · Xero connected</p></div><div class="row"><button class="btn btn-ghost" onclick="toast('Demo only: ABA refund file.')">Refund batch (ABA)</button><button class="btn btn-primary" onclick="toast('Demo only: posted to Xero.')">Post to Xero</button></div></div>
+    <div class="grid g4"><div class="card kpi"><div class="l">Collected this month</div><div class="n">$58.4k</div></div><div class="card kpi"><div class="l">Payable now</div><div class="n">$41.2k</div></div><div class="card kpi"><div class="l">Committed in plans</div><div class="n">$18.9k</div></div><div class="card kpi"><div class="l">Unpaid refunds</div><div class="n">$1.3k</div></div></div>
+    <div class="grid g2" style="margin-top:16px">
+      <div class="card"><h3>Payment plans awaiting approval</h3>${[["PP-0201","Taylor family","$345","6 x fortnightly"],["PP-0202","Chen family","$640","8 x fortnightly"],["PP-0203","Okafor family","$860","4 x monthly"]].map(p=>`<div class="list-item small"><span class="grow"><b>${p[0]}</b> · ${p[1]}<br><span class="muted">${p[2]} · ${p[3]}</span></span><button class="btn btn-sm btn-primary" onclick="toast('Demo only: plan approved. First debit scheduled.')">Approve</button><button class="btn btn-sm btn-ghost" onclick="toast('Demo only: plan declined.')">Decline</button></div>`).join("")}</div>
+      <div class="card"><h3>Debtor aging</h3>${[["Current",22100,41200],["31 to 60 days",11400,41200],["61 to 90 days",5200,41200],["Over 90 days",2500,41200]].map(a=>`<div style="margin:10px 0"><div class="row small"><span class="grow">${a[0]}</span><b>${money(a[1])}</b></div><div class="bar"><span style="width:${Math.round(a[1]/a[2]*100)}%"></span></div></div>`).join("")}<button class="btn btn-sm" onclick="toast('Demo only: reminders queued for 61+ days.')">Send reminders (61+ days)</button></div>
+    </div>
+    <h3 style="margin-top:20px">Recent payments</h3><div class="table-wrap"><table><thead><tr><th>Date</th><th>Family</th><th>Method</th><th>Amount</th><th>Xero</th></tr></thead><tbody>
+    ${[["14 Nov","Nguyen family","Card","$590.00","Posted"],["14 Nov","Taylor family","Direct debit","$100.00","Pending"],["13 Nov","Singh family","Apple Pay","$520.00","Posted"],["13 Nov","Murphy family","Cash (receipted by Treasurer)","$295.00","Pending"],["12 Nov","Haddad family","Get Active Kids voucher","$200.00","Pending"]].map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]==="Posted"?pill("Paid").replace("Paid","Posted"):'<span class="pill info">Pending</span>'}</td></tr>`).join("")}</tbody></table></div>`;
+  if(page==="content") b=`<div class="page-head"><div><h2>Content: Home page</h2><p class="muted">Edit sections in place. Draft, preview and scheduled publishing.</p></div><div class="row"><span class="pill warn">Draft changes</span><button class="btn btn-ghost" onclick="go('site/home')">Preview</button><button class="btn btn-primary" onclick="toast('Demo only: published.')">Publish</button></div></div>
+    <div class="grid g-main">
+    <div>${[["Hero","Football for every age and ability since 1974"],["News feed","Latest 3 posts, category: all"],["What's on","Open events, max 3"],["Sponsors","Major and Gold tiers"]].map(s=>`<div class="editor-sec"><div class="tools"><button class="btn btn-sm">Edit</button><button class="btn btn-sm btn-ghost" aria-label="Move up">↑</button><button class="btn btn-sm btn-ghost" aria-label="Move down">↓</button></div><span class="pill">${s[0]}</span><p style="margin:8px 0 0"><b>${s[1]}</b></p></div>`).join("")}
+    <button class="btn btn-ghost" onclick="toast('Demo only: section picker.')">+ Add section</button></div>
+    <div class="card"><h3>Site</h3>${["Pages (33)","News posts","Menu builder","Documents (31)","Images (168)","Sponsors (20)","Grounds and status","Privacy notice"].map(x=>`<div class="list-item small"><span class="grow">${x}</span><span class="muted">›</span></div>`).join("")}</div></div>`;
+  if(page==="access"){
+    const roles=["Secretary","Treasurer","Registrar","Content editor","Coach","Auditor"];
+    const perms=[["Events and registrations",[1,0,1,0,0,0]],["Export personal data",[1,0,1,0,0,0]],["Child medical and WWCC data",[1,0,1,0,2,0]],["Finance: view",[1,1,1,0,0,1]],["Finance: refunds",[0,1,0,0,0,0]],["Content and website",[1,0,0,1,0,0]],["Communications",[1,1,1,0,2,0]],["Roles and access",[1,0,0,0,0,0]]];
+    b=`<div class="page-head"><div><h2>Access and roles</h2><p class="muted">Committee 2026 · term ends 29 Dec 2026 · access expires automatically</p></div><button class="btn btn-primary" onclick="toast('Demo only: add committee member.')">Add member</button></div>
+    <div class="table-wrap"><table class="matrix"><thead><tr><th>Permission</th>${roles.map(r=>`<th>${r}</th>`).join("")}</tr></thead><tbody>
+    ${perms.map(p=>`<tr><td>${p[0]}</td>${p[1].map(v=>`<td>${v===1?'<span class="tick" aria-label="Yes">✓</span>':v===2?'<span class="pill info">Own team</span>':'<span class="cross" aria-label="No">–</span>'}</td>`).join("")}</tr>`).join("")}</tbody></table></div>
+    <div class="grid g3" style="margin-top:16px"><div class="card"><h3>MFA</h3><p class="small muted" style="margin:0">Required for all committee and officials. 15 of 15 enrolled.</p></div><div class="card"><h3>Step-up sign-in</h3><p class="small muted" style="margin:0">Required again for refunds, exports and role changes.</p></div><div class="card"><h3>Auditor</h3><p class="small muted" style="margin:0">Read-only finance access, expires after 30 days.</p></div></div>`}
+  if(page==="audit") b=`<h2>Audit log</h2><p class="muted">Every admin action and every view of sensitive child data. Cannot be edited or deleted.</p>
+    <div class="table-wrap"><table><thead><tr><th>Time</th><th>Who</th><th>Action</th><th>Object</th></tr></thead><tbody>
+    ${DATA.audit.map(a=>`<tr><td>${a.t}</td><td>${a.who}</td><td>${a.a}</td><td>${a.obj}</td></tr>`).join("")}</tbody></table></div>`;
+  return appShell("admin", page, ADMIN_NAV, who, b);
+}
+function moveCard(lane,idx,dir){const lanes=Object.keys(DATA.pipeline);const li=lanes.indexOf(lane);const [p]=DATA.pipeline[lane].splice(idx,1);DATA.pipeline[lanes[li+dir]].push(p);render();toast(`${p} moved to ${lanes[li+dir]}.`)}
+function updSel(){const n=document.querySelectorAll('.rowchk:checked').length;$("#selcount").textContent=n+" selected"}
+
+/* ---------- Router ---------- */
+function render(){
+  const [area="site", page="home", arg] = (location.hash.slice(1)||"site/home").split("/");
+  document.querySelectorAll(".tab[data-area]").forEach(t=>t.setAttribute("aria-pressed", t.dataset.area===area));
+  const route=area+"/"+page;
+  if(page==="register" && render.last!==route){ wiz.step=0; wiz.agreed=false; }
+  render.last=route;
+  let html="";
+  if(area==="site"){
+    html = page==="whats-on"?siteWhatsOn(): page==="event"?siteEvent(arg): page==="register"?siteRegister(arg): page==="fixtures"?siteFixtures(): page==="teams"?siteTeams(): page==="sponsors"?siteSponsors(): page==="contact"?siteContact(): page==="shop"?siteShop(): siteHome();
+  } else if(area==="portal"){ html = portal(PORTAL_NAV.some(n=>n.k===page)?page:"home"); }
+  else { html = admin(ADMIN_NAV.some(n=>n.k===page)?page:"dashboard"); }
+  $("#root").innerHTML = html;
+}
+document.querySelectorAll(".tab[data-area]").forEach(t=>t.addEventListener("click",()=>{const a=t.dataset.area;go(a+"/"+(a==="site"?"home":a==="portal"?"home":"dashboard"));window.scrollTo(0,0)}));
+window.addEventListener("hashchange",()=>{render();window.scrollTo(0,0)});
+$("#themeBtn").addEventListener("click",()=>{const r=document.documentElement;const dark=r.dataset.theme?r.dataset.theme==="dark":matchMedia("(prefers-color-scheme: dark)").matches;r.dataset.theme=dark?"light":"dark"});
+render();
+</script>
+</body>
+</html>
